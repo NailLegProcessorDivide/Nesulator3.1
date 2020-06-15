@@ -36,7 +36,7 @@ int main(int iargs, char** args){
     ((uint8_t*)ram.data)[1] = 0x80;
     stepCpu(&mycpu);
     stepCpu(&mycpu);
-    //stepCpu(mycpu);
+    stepCpu(&mycpu);
     destroyRamDevice816(&ram);
     destroyRomDevice816(&rom);
     printf("successful run, A = 0x%02X\n", mycpu.A);
