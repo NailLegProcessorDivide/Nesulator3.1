@@ -534,8 +534,6 @@ int TXS(mos6502 *_cpu) {
     return 2;
 }
 
-
-
 #define makeLD(reg, addMode, clockcycles) int LD##reg##_##addMode(mos6502 *_cpu) {\
     _cpu->reg = basicRead(_cpu, addMode(_cpu));\
     donz(_cpu, _cpu->reg);\
