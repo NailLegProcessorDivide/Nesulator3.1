@@ -3,10 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
-/*
-###################################--- PUBLIC FUNCTIONS ---#######################################
-*/
+/************************************************
+ *  PUBLIC FUNCTIONS
+ ***********************************************/
 
 void createCpu(mos6502 *_cpu) {
     _cpu->A = 0;
@@ -15,7 +14,7 @@ void createCpu(mos6502 *_cpu) {
     _cpu->flags = 0;
     _cpu->X = 0;
     _cpu->Y = 0;
-    _cpu->interupts = 0;
+    _cpu->interrupts = 0;
     _cpu->devices = nullptr;
     _cpu->deviceCount = 0;
     printf("created cpu\n");
@@ -40,9 +39,9 @@ bool addDevice(mos6502 *_cpu, device816 *dev) {
     }
 }
 
-/*
-###################################--- BASIC READ/WRITE ---#######################################
-*/
+/************************************************
+ *  BASIC READ/WRITE
+ ***********************************************/
 
 uint8_t basicRead(mos6502 *_cpu, uint16_t address) {
     for (size_t i = 0; i < _cpu->deviceCount; i++) {
@@ -71,9 +70,9 @@ uint8_t pop(mos6502 *_cpu) {
     return basicRead(_cpu, 0x100 + (++_cpu->SP));
 }
 
-/*
-###################################--- FLAG FUNCTIONS ---#######################################
-*/
+/************************************************
+ *  FLAG FUNCTIONS
+ ***********************************************/
 
 #define FLAG_N 0b10000000
 #define FLAG_V 0b01000000
@@ -111,9 +110,9 @@ inline void donzc(mos6502 *_cpu, uint16_t val) {
     setFlag(_cpu, FLAG_C, val & 0x100);
 }
 
-/*
-###################################--- INTERUPT FUNCTIONS ---#######################################
-*/
+/************************************************
+ *  INTERRUPT FUNCTIONS
+ ***********************************************/
 
 #define IRQ_VEC 0xFFFE
 #define NMI_VEC 0xFFFA
@@ -151,9 +150,9 @@ void triggerIRQ(mos6502 *_cpu) {
     _cpu->PC |= basicRead(_cpu, IRQ_VEC + 1) << 8;
 }
 
-/*
-###################################--- ADDRESS MODES ---#######################################
-*/
+/************************************************
+ *  ADDRESS MODES
+ ***********************************************/
 
 uint16_t abss(mos6502 *_cpu) {
     uint16_t address = basicRead(_cpu, _cpu->PC) | (basicRead(_cpu, _cpu->PC + 1) << 8);
@@ -229,10 +228,9 @@ uint16_t inline rel(mos6502 *_cpu) {
     return (int8_t) basicRead(_cpu, _cpu->PC++) + _cpu->PC;
 }
 
-/*
-###################################--- INSTRUCTIONS ---#######################################
-*/
-
+/************************************************
+ *  INSTRUCTIONS
+ ***********************************************/
 
 int NOP(mos6502 *_cpu) {
     printf("nop at %X\n", _cpu->PC);
@@ -289,7 +287,6 @@ makeORA(absy, 4)
     donzc(_cpu, v);\
     return clockcycles;\
 }
-
 makeASL(zpg, 5)
 makeASL(zpgx, 6)
 makeASL(abss, 6)
@@ -310,9 +307,7 @@ int ASLA(mos6502 *_cpu) {
     _cpu->PC = v;\
     return clockcycles;\
 }// 6 cycles
-
 makeJSR(abss, 6)
-
 
 #define makeBIT(addMode, clockcycles) int BIT_##addMode (mos6502 *_cpu) {\
     uint8_t res = _cpu->A & basicRead(_cpu, addMode(_cpu));\
@@ -329,7 +324,6 @@ makeBIT(abss, 4)
     donz(_cpu, v);\
     return clockcycles;\
 }
-
 makeAND(imm, 2);
 makeAND(zpg, 3);
 makeAND(zpgx, 4);
@@ -348,7 +342,6 @@ makeAND(indy, 5);
     setFlag(_cpu, FLAG_C, v & 1);\
     return clockcycles;\
 }
-
 makeROL(zpg, 5)
 makeROL(zpgx, 6)
 makeROL(abss, 6)
@@ -395,7 +388,6 @@ int LSRA(mos6502 *_cpu) {
     return 2;
 }
 
-
 #define makeEOR(addMode, clockcycles) int EOR_##addMode (mos6502 *_cpu) {\
     _cpu->A ^= basicRead(_cpu, addMode(_cpu));\
     donz(_cpu, _cpu->A);\
@@ -409,7 +401,6 @@ makeEOR(absx, 4)
 makeEOR(absy, 4)
 makeEOR(xind, 6)
 makeEOR(indy, 5)
-
 
 #define makeADC(addMode, clockcycles) int ADC_##addMode (mos6502 *_cpu) {\
     uint8_t v = basicRead(_cpu, addMode(_cpu));\
@@ -445,7 +436,6 @@ makeSBC(absx, 4)
 makeSBC(absy, 4)
 makeSBC(xind, 6)
 makeSBC(indy, 5)
-
 
 #define makeCMP(addMode, clockcycles) int CMP_##addMode (mos6502 *_cpu) {\
     uint16_t v = _cpu->A - basicRead(_cpu, addMode(_cpu));\
@@ -501,7 +491,6 @@ int RORA(mos6502 *_cpu) {
     basicWrite(_cpu, addMode(_cpu), _cpu->reg);\
     return clockcycles;\
 }
-
 makeST(A, zpg, 3)
 makeST(A, zpgx, 4)
 makeST(A, abss, 4)
@@ -560,8 +549,6 @@ makeLD(Y, zpgx, 4)
 makeLD(Y, abss, 4)
 makeLD(Y, absx, 4)
 
-
-
 #define makeB_C(flag, clockcycles) int B##flag##C (mos6502 *_cpu) {\
     uint16_t add = rel(_cpu);\
     if (!testFlag(_cpu, FLAG_##flag)) { _cpu->PC = add; }\
@@ -581,12 +568,12 @@ makeB_S(V, 2)
 makeB_C(N, 2)//BPL
 makeB_S(N, 2)//BMI
 
-
 #define makeINC(addMode, clockcycles) int INC_##addMode(mos6502 *_cpu) {\
     uint16_t address = addMode(_cpu);\
     basicWrite(_cpu, address, basicRead(_cpu, address) + 1);\
     return clockcycles;\
 }
+
 #define makeIN_(reg) int IN##reg (mos6502 *_cpu) {\
     ++_cpu->reg;\
     donz(_cpu, _cpu->reg);\
@@ -606,7 +593,6 @@ makeB_S(N, 2)//BMI
     donz(_cpu, _cpu->reg);\
     return 2;\
 }
-
 makeINC(zpg, 5)
 makeDEC(zpg, 5)
 makeINC(zpgx, 6)
@@ -625,14 +611,17 @@ int PLA(mos6502 *_cpu) {
     donz(_cpu, _cpu->A);
     return 4;
 }
+
 int PHA(mos6502 *_cpu) {
     push(_cpu, _cpu->A);
     return 3;
 }
+
 int PLP(mos6502 *_cpu) {
     _cpu->flags = pop(_cpu);
     return 4;
 }
+
 int PHP(mos6502 *_cpu) {
     push(_cpu, _cpu->flags);
     return 3;
@@ -643,10 +632,12 @@ int RTI(mos6502 *_cpu) {
     _cpu->PC = (pop(_cpu) << 8) | pop(_cpu);
     return 6;
 }
+
 int RTS(mos6502 *_cpu) {
     _cpu->PC = (pop(_cpu) << 8) + pop(_cpu);
     return 6;
 }
+
 int ERR(mos6502 *_cpu){
     getc(stdin);
     return 10000000;

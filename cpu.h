@@ -12,7 +12,7 @@ struct mos6502 {
     uint8_t A, X, Y, SP;
     uint16_t PC;
     uint8_t flags;
-    uint8_t interupts;
+    uint8_t interrupts;
     device816* devices;
     size_t deviceCount;
 };
