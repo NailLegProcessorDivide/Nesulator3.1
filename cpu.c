@@ -653,15 +653,20 @@ int ERR(mos6502 *_cpu){
 }
 
 static const mos6502instruction cpuopmap[256] = {
-        //0, 1       , 2  , 3  , 4      , 5       , 6       , 7  , 8  , 9       , A   , B  , C       , D       , E       , F
-        BRK, ORA_xind, ERR, ERR, ERR    , ORA_zpg , ASL_zpg , ERR, PHP, ORA_imm , ASLA, ERR, ERR     , ORA_abss, ASL_abss, ERR,//0
-        BNC, ORA_indy, ERR, ERR, ERR    , ORA_zpgx, ASL_zpgx, ERR, CLC, ORA_absy, ERR , ERR, ERR     , ORA_absx, ASL_absx, ERR,//1
-        JSR, AND_xind, ERR, ERR, BIT_zpg, AND_zpg , ROL_zpg , ERR, PLP, AND_imm , ROLA, ERR, BIT_abss, AND_abss, ROL_abss, ERR,//2
-        BNS, AND_indy, ERR, ERR, ERR    , AND_zpgx, ROL_zpgx, ERR, SEC, AND_absy, ERR , ERR, ERR     , AND_absx, ROL_absx, ERR,//3
-        RTI, EOR_xind, ERR, ERR, ERR    , EOR_zpg , LSR_zpg , ERR, PHA, EOR_imm , LSRA, ERR, JMP_abss, EOR_abss, LSR_abss, ERR,//4
-        BVC, EOR_indy, ERR, ERR, ERR    , EOR_zpgx, LSR_zpgx, ERR, CLI, EOR_absy, ERR , ERR, ERR     , EOR_absx, LSR_absx, ERR,//5
-        RTS, ADC_xind, ERR, ERR, ERR    , ADC_zpg , ROR_zpg , ERR, PLA, ADC_imm , RORA, ERR, JMP_ind , ADC_abss, ROR_abss, ERR,//6
-        RTS, ADC_indy, ERR, ERR, ERR    , ADC_zpgx, ROR_zpgx, ERR, PLA, ADC_absy, ERR , ERR, ERR     , ADC_absx, ROR_absx, ERR,//7
+        //0    , 1       , 2      , 3  , 4       , 5       , 6       , 7  , 8  , 9       , A   , B  , C       , D       , E       , F
+        BRK    , ORA_xind, ERR    , ERR, ERR     , ORA_zpg , ASL_zpg , ERR, PHP, ORA_imm , ASLA, ERR, ERR     , ORA_abss, ASL_abss, ERR,//0
+        BNC    , ORA_indy, ERR    , ERR, ERR     , ORA_zpgx, ASL_zpgx, ERR, CLC, ORA_absy, ERR , ERR, ERR     , ORA_absx, ASL_absx, ERR,//1
+        JSR    , AND_xind, ERR    , ERR, BIT_zpg , AND_zpg , ROL_zpg , ERR, PLP, AND_imm , ROLA, ERR, BIT_abss, AND_abss, ROL_abss, ERR,//2
+        BNS    , AND_indy, ERR    , ERR, ERR     , AND_zpgx, ROL_zpgx, ERR, SEC, AND_absy, ERR , ERR, ERR     , AND_absx, ROL_absx, ERR,//3
+        RTI    , EOR_xind, ERR    , ERR, ERR     , EOR_zpg , LSR_zpg , ERR, PHA, EOR_imm , LSRA, ERR, JMP_abss, EOR_abss, LSR_abss, ERR,//4
+        BVC    , EOR_indy, ERR    , ERR, ERR     , EOR_zpgx, LSR_zpgx, ERR, CLI, EOR_absy, ERR , ERR, ERR     , EOR_absx, LSR_absx, ERR,//5
+        RTS    , ADC_xind, ERR    , ERR, ERR     , ADC_zpg , ROR_zpg , ERR, PLA, ADC_imm , RORA, ERR, JMP_ind , ADC_abss, ROR_abss, ERR,//6
+        BVS    , ADC_indy, ERR    , ERR, ERR     , ADC_zpgx, ROR_zpgx, ERR, SEI, ADC_absy, ERR , ERR, ERR     , ADC_absx, ROR_absx, ERR,//7
+        ERR    , STA_xind, ERR    , ERR, STY_zpg , STA_zpg , STX_zpg , ERR, DEY, ERR     , TXA, ERR, STY_abss, STA_abss, STX_abss, ERR,//8
+        BCC    , STA_indy, ERR    , ERR, STY_zpgx, STA_zpgx, STX_zpgy, ERR, TYA, STA_absy, TXS , ERR, ERR     , STA_absx, ERR     , ERR,//9
+        LDY_imm, LDA_xind, LDX_imm, ERR, LDY_zpg , LDA_zpg , LDX_zpg , ERR, TAY, LDA_imm , TAX , ERR, LDY_abss, LDA_abss, LDX_abss, ERR,//A
+        BCS    , LDA_indy, ERR    , ERR, LDY_zpgx, LDA_zpgx, LDX_zpgy, ERR, CLV, LDA_absy, TSPX, ERR, LDY_absx, LDA_absx, LDX_absy, ERR,//B
+
 };
 
 int stepCpu(mos6502 *_cpu) {
