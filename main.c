@@ -3,6 +3,10 @@
 
 #include <stdio.h>
 
+uint8_t eaterRead(void* data, uint16_t) {
+    return
+}
+
 int main(int iargs, char** args){
     mos6502 mycpu;
     createCpu(&mycpu);

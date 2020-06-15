@@ -431,7 +431,7 @@ makeADC(indy, 5)
 
 #define makeSBC(addMode, clockcycles) int SBC_##addMode(mos6502 *_cpu) {\
     uint8_t v = ~basicRead(_cpu, addMode(_cpu));\
-    uint16_t val = _cpu->A - v - testFlag(_cpu, FLAG_C) ? 1 : 0;\
+    uint16_t val = _cpu->A - v - (testFlag(_cpu, FLAG_C) ? 1 : 0);\
     _cpu->A = (uint8_t) val;\
     donzc(_cpu, val);\
     setFlag(_cpu, FLAG_V, (v ^ _cpu->A) & 0x80);\
@@ -649,6 +649,7 @@ int RTS(mos6502 *_cpu) {
 }
 int ERR(mos6502 *_cpu){
     getc(stdin);
+    return 10000000;
 }
 
 static const mos6502instruction cpuopmap[256] = {
