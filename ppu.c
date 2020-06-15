@@ -9,7 +9,6 @@
 #define PRERENDEREND 21
 #define PICTUREEND 261
 
-
 uint8_t read(void *myppu, uint16_t address) {
     ppu *_ppu = (ppu *) myppu;
     address = address & 7;
@@ -84,6 +83,5 @@ void stepPPU(ppu *_ppu) {
     _ppu->frameCounter += (_ppu->frameRow) / LINECOUNT;
     _ppu->frameCol %= LINEWIDTH;
     _ppu->frameRow %= LINECOUNT;
-
 }
 

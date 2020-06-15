@@ -5,7 +5,6 @@
 #ifndef NESULATOR_PPU_H
 #define NESULATOR_PPU_H
 
-
 #include "emulatorGlue.h"
 
 struct ppu {

@@ -5,7 +5,6 @@
 #ifndef NESULATOR_MEMORY_H
 #define NESULATOR_MEMORY_H
 
-
 #include "emulatorGlue.h"
 
 bool createRamDevice816(device816*, uint16_t, uint16_t);
