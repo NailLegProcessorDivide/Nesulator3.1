@@ -11,69 +11,78 @@
 
 uint8_t read(void *myppu, uint16_t address) {
     ppu *_ppu = (ppu *) myppu;
-    address = address & 7;
-    if (address == 2) {
-        _ppu->scrollWriteNo = 0;
-        return _ppu->PPUSTATUS;
-    } else if (address == 4) {
-        return _ppu->oamram[_ppu->PPUADDR];
+    address &= 0b00000111; // Get the last 3 bits of the address to determine the register (registers are mirrored)
+    switch (address) {
+        case 2: // PPUSTATUS
+            _ppu->scrollWriteNo = 0; // reset address latch for PPUSCROLL## and PPUADDR
+            _ppu->PPUADDRWriteNo = 0;
+            return _ppu->PPUSTATUS;
+        case 4: // OAMDATA
+            return _ppu->oamram[_ppu->OAMADDR];
+        case 7: // PPUDATA
+            uint8_t data = _ppu->vram[_ppu->PPUADDR];
+            _ppu->PPUADDR += (_ppu->PPUCTRL & 0b00000100) == 0 ? 1 : 32; // determine increment from 2nd bit of PPUCTRL
+            return data;
     }
 }
 
 void write(void *myppu, uint16_t address, uint8_t val) {
     ppu *_ppu = (ppu *) myppu;
-    address = address & 7;
+    address &= 0b00000111;
     switch (address) {
-        case 0:
+        case 0: // PPUCTRL
             _ppu->PPUCTRL = val;
             break;
-        case 1:
+        case 1: // PPUMASK
             _ppu->PPUMASK = val;
             break;
-        case 3:
-            _ppu->PPUADDR = val;
+        case 3: // OAMADDR
+            _ppu->OAMADDR = val;
             break;
-        case 4:
-            _ppu->oamram[_ppu->PPUADDR] = val;
+        case 4: // OAMDATA
+            _ppu->oamram[_ppu->OAMADDR] = val;
+            _ppu->OAMADDR++; // increment OAMADDR when writing to OAMDATA
             break;
-        case 5:
-            _ppu->scrollWriteNo ^= 1;
-            //if operates based on the initial pre xor value of scrollWriteNo 0->X 1->Y
-            if (_ppu->scrollWriteNo) {
+        case 5: // PPUSCROLL
+            // inital value of 0 means X register is written to first
+            _ppu->scrollWriteNo ^= 1; // Perform XOR to toggle scrollWriteNo
+            if (_ppu->scrollWriteNo) { // write to PPUSCROLLX
                 _ppu->PPUSCROLLX = val;
-            } else {
+            } else { // write to PPUSCROLLY
                 _ppu->PPUSCROLLY = val;
             }
             break;
-        case 6:
+        case 6: // PPUADDR
             _ppu->PPUADDRWriteNo ^= 1;
-            if (_ppu->PPUADDRWriteNo) {
-                _ppu->PPUADDR = (val << 8) | (_ppu->PPUADDR & 0xFF);
-            } else {
-                _ppu->PPUSCROLLY = (_ppu->PPUADDR & 0xFF00) | val;
+            if (_ppu->PPUADDRWriteNo) { // write to higher byte of PPUADDR
+                _ppu->PPUADDR = (val << 8) | (_ppu->PPUADDR & 0x00FF);
+            } else { // write to lower byte of PPUADDR
+                _ppu->PPUADDR = (_ppu->PPUADDR & 0xFF00) | val;
             }
             break;
-        case 7:
-
+        case 7: // PPUDATA
+            _ppu->vram[_ppu->PPUADDR] = val;
+            _ppu->PPUADDR += (_ppu->PPUCTRL & 0b00000100) == 0 ? 1 : 32;
             break;
     }
 }
 
 void createPPU(ppu *_ppu) {
+    _ppu->PPUCTRL = 0;
+    _ppu->PPUMASK = 0;
+    _ppu->PPUSTATUS = 0;
     _ppu->OAMADDR = 0;
     _ppu->OAMDATA = 0;
-    _ppu->OAMDMA = 0;
-    _ppu->oamram = (uint8_t *) malloc(sizeof(uint8_t) * 0x200);
-    _ppu->PPUADDR = 0;
-    _ppu->PPUCTRL = 0;
-    _ppu->PPUDATA = 0;
-    _ppu->PPUMASK = 0;
     _ppu->PPUSCROLLX = 0;
     _ppu->PPUSCROLLY = 0;
-    _ppu->PPUSTATUS = 0xA0;
+    _ppu->PPUADDR = 0;
+    _ppu->PPUDATA = 0;
+    _ppu->OAMDMA = 0;
+
     _ppu->frameCounter = 0;
     _ppu->frameCol = 0;
     _ppu->frameRow = 0;
+
     _ppu->scrollWriteNo = 0;
     _ppu->PPUADDRWriteNo = 0;
 }

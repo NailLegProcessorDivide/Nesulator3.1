@@ -18,10 +18,14 @@ struct ppu {
     uint16_t PPUADDR;
     uint8_t PPUDATA;
     uint8_t OAMDMA;
-    uint8_t* oamram;
+
+    uint8_t vram[0x800]; // 2K of VRAM
+    uint8_t oamram[0x100]; // 256 bytes of OAM RAM
+
     uint32_t frameCounter;
     uint16_t frameRow;
     uint16_t frameCol;
+
     uint8_t scrollWriteNo;
     uint8_t PPUADDRWriteNo;
 };

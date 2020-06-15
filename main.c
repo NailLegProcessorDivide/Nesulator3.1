@@ -61,6 +61,4 @@ int main(int iargs, char** args){
     printf("successful run, A = 0x%02X\n", mycpu.A);
 
     return 0;
-
-
 }
