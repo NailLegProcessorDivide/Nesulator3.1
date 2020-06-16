@@ -1,4 +1,5 @@
 #include "ppu.h"
+#include "emulatorGlue.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,6 +10,9 @@
 #define PICTUREHEIGHT 240
 #define PRERENDEREND 21
 #define PICTUREEND 261
+
+makeRead(ppu);
+makeWrite(ppu);
 
 uint8_t read(void *myppu, uint16_t address) {
     ppu *_ppu = (ppu *) myppu;

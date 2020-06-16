@@ -20,57 +20,16 @@ void createCpu(mos6502 *_cpu) {
     fputs("CREATED CPU\n", stdout);
 }
 
-bool addDevice(mos6502 *_cpu, const device816 *dev) {
-    device816 *newdevs;
-    if (_cpu->deviceCount == 0) {
-        _cpu->deviceCount++;
-        newdevs = (device816 *) malloc(_cpu->deviceCount * sizeof(device816));
-    } else {
-        _cpu->deviceCount++;
-        newdevs = (device816 *) realloc(_cpu->devices, _cpu->deviceCount * sizeof(device816));
-    }
-    if (newdevs == nullptr) {
-        free(_cpu->devices);
-        return false;
-    } else {
-        _cpu->devices = newdevs;
-        _cpu->devices[_cpu->deviceCount - 1] = *dev;
-        return true;
-    }
-}
-
-/************************************************
- *  BASIC READ/WRITE
- ***********************************************/
-
-uint8_t basicRead(mos6502 *_cpu, uint16_t address) {
-    uint8_t val = 0;
-    for (size_t i = 0; i < _cpu->deviceCount; i++) {
-        device816* dev = &_cpu->devices[i];
-        if (dev->start <= address && dev->start + dev->length > address) {
-            val = dev->readfun(dev->data, address - dev->start);
-        }
-    }
-    fprintf(stdout, "READ %X %X\n", address, val);
-    return val;
-}
-
-void basicWrite(mos6502 *_cpu, uint16_t address, uint8_t value) {
-    fprintf(stdout, "WRITE %X %X\n", address, value);
-    for (size_t i = 0; i < _cpu->deviceCount; i++) {
-        device816 *dev = &(_cpu->devices[i]);
-        if (dev->start <= address && dev->start + dev->length > address) {
-            dev->writefun(dev->data, address - dev->start, value);
-        }
-    }
-}
+makeDeviceAdder(mos6502);
+makeDeviceReader(mos6502);
+makeDeviceWriter(mos6502);
 
 void push(mos6502 *_cpu, uint8_t value) {
-    basicWrite(_cpu, 0x100 + (_cpu->SP--), value);
+    write_mos6502(_cpu, 0x100 + (_cpu->SP--), value);
 }
 
 uint8_t pop(mos6502 *_cpu) {
-    return basicRead(_cpu, 0x100 + (++_cpu->SP));
+    return read_mos6502(_cpu, 0x100 + (++_cpu->SP));
 }
 
 /************************************************
@@ -128,8 +87,8 @@ void triggerNMI(mos6502 *_cpu) {
     push(_cpu, _cpu->PC & 0xf);
     push(_cpu, _cpu->flags);
     setFlags(_cpu, FLAG_I);
-    _cpu->PC = basicRead(_cpu, NMI_VEC);
-    _cpu->PC |= basicRead(_cpu, NMI_VEC + 1) << 8;
+    _cpu->PC = read_mos6502(_cpu, NMI_VEC);
+    _cpu->PC |= read_mos6502(_cpu, NMI_VEC + 1) << 8;
 }
 
 void triggerRST(mos6502 *_cpu) {
@@ -138,8 +97,8 @@ void triggerRST(mos6502 *_cpu) {
     push(_cpu, _cpu->PC & 0xf);
     push(_cpu, _cpu->flags);
     setFlags(_cpu, FLAG_I);
-    _cpu->PC = basicRead(_cpu, RST_VEC);
-    _cpu->PC |= basicRead(_cpu, RST_VEC + 1) << 8;
+    _cpu->PC = read_mos6502(_cpu, RST_VEC);
+    _cpu->PC |= read_mos6502(_cpu, RST_VEC + 1) << 8;
 
 }
 
@@ -149,8 +108,8 @@ void triggerIRQ(mos6502 *_cpu) {
     push(_cpu, _cpu->PC & 0xf);
     push(_cpu, _cpu->flags);
     setFlags(_cpu, FLAG_I);
-    _cpu->PC = basicRead(_cpu, IRQ_VEC);
-    _cpu->PC |= basicRead(_cpu, IRQ_VEC + 1) << 8;
+    _cpu->PC = read_mos6502(_cpu, IRQ_VEC);
+    _cpu->PC |= read_mos6502(_cpu, IRQ_VEC + 1) << 8;
 }
 
 /************************************************
@@ -158,7 +117,7 @@ void triggerIRQ(mos6502 *_cpu) {
  ***********************************************/
 
 uint16_t abss(mos6502 *_cpu) {
-    uint16_t address = basicRead(_cpu, _cpu->PC) | (basicRead(_cpu, _cpu->PC + 1) << 8);
+    uint16_t address = read_mos6502(_cpu, _cpu->PC) | (read_mos6502(_cpu, _cpu->PC + 1) << 8);
     _cpu->PC += 2;
     return address;
 
@@ -173,13 +132,13 @@ void accWrite(mos6502 *_cpu, uint8_t val) {
 }
 
 uint16_t absx(mos6502 *_cpu) {
-    uint16_t ret = (basicRead(_cpu, _cpu->PC) | (basicRead(_cpu, _cpu->PC + 1) << 8)) + _cpu->X;
+    uint16_t ret = (read_mos6502(_cpu, _cpu->PC) | (read_mos6502(_cpu, _cpu->PC + 1) << 8)) + _cpu->X;
     _cpu->PC += 2;
     return ret;
 }
 
 uint16_t absy(mos6502 *_cpu) {
-    uint16_t ret = (basicRead(_cpu, _cpu->PC) | (basicRead(_cpu, _cpu->PC + 1) << 8)) + _cpu->Y;
+    uint16_t ret = (read_mos6502(_cpu, _cpu->PC) | (read_mos6502(_cpu, _cpu->PC + 1) << 8)) + _cpu->Y;
     _cpu->PC += 2;
     return ret;
 }
@@ -189,46 +148,46 @@ uint16_t imm(mos6502 *_cpu) {
 }
 
 uint16_t ind(mos6502 *_cpu) {
-    uint16_t address = (basicRead(_cpu, _cpu->PC) | (basicRead(_cpu, _cpu->PC + 1) << 8));
-    uint16_t v = basicRead(_cpu, address) | (basicRead(_cpu, address + 1) << 8);
+    uint16_t address = (read_mos6502(_cpu, _cpu->PC) | (read_mos6502(_cpu, _cpu->PC + 1) << 8));
+    uint16_t v = read_mos6502(_cpu, address) | (read_mos6502(_cpu, address + 1) << 8);
     _cpu->PC += 2;
     return v;
 }
 
 uint16_t xind(mos6502 *_cpu) {
-    uint16_t address = (basicRead(_cpu, _cpu->PC) | (basicRead(_cpu, _cpu->PC + 1) << 8)) + _cpu->X;
-    uint16_t v = basicRead(_cpu, address) | (basicRead(_cpu, address + 1) << 8);
+    uint16_t address = (read_mos6502(_cpu, _cpu->PC) | (read_mos6502(_cpu, _cpu->PC + 1) << 8)) + _cpu->X;
+    uint16_t v = read_mos6502(_cpu, address) | (read_mos6502(_cpu, address + 1) << 8);
     _cpu->PC += 2;
     return v;
 }
 
 uint16_t indy(mos6502 *_cpu) {
-    uint16_t address = (basicRead(_cpu, _cpu->PC) | (basicRead(_cpu, _cpu->PC + 1) << 8));
-    uint16_t v = (uint8_t) (basicRead(_cpu, address) | (basicRead(_cpu, address + 1) << 8) + _cpu->Y);
+    uint16_t address = (read_mos6502(_cpu, _cpu->PC) | (read_mos6502(_cpu, _cpu->PC + 1) << 8));
+    uint16_t v = (uint8_t) (read_mos6502(_cpu, address) | (read_mos6502(_cpu, address + 1) << 8) + _cpu->Y);
     _cpu->PC += 2;
     return v;
 }
 
 uint16_t inline zpg(mos6502 *_cpu) {
-    uint16_t val = basicRead(_cpu, _cpu->PC);
+    uint16_t val = read_mos6502(_cpu, _cpu->PC);
     _cpu->PC += 1;
     return val;
 }
 
 uint16_t inline zpgx(mos6502 *_cpu) {
-    uint16_t val = (uint8_t) (basicRead(_cpu, _cpu->PC) + _cpu->X);
+    uint16_t val = (uint8_t) (read_mos6502(_cpu, _cpu->PC) + _cpu->X);
     _cpu->PC += 1;
     return val;
 }
 
 uint16_t inline zpgy(mos6502 *_cpu) {
-    uint16_t val = (uint8_t) (basicRead(_cpu, _cpu->PC) + _cpu->Y);
+    uint16_t val = (uint8_t) (read_mos6502(_cpu, _cpu->PC) + _cpu->Y);
     _cpu->PC += 1;
     return val;
 }
 
 uint16_t inline rel(mos6502 *_cpu) {
-    return (int8_t) basicRead(_cpu, _cpu->PC++) + _cpu->PC;
+    return (int8_t) read_mos6502(_cpu, _cpu->PC++) + _cpu->PC;
 }
 
 /************************************************
@@ -269,7 +228,7 @@ makeSE(I)
 makeSE(D)
 
 #define makeORA(addMode, clockcycles) int ORA_##addMode (mos6502 *_cpu) {\
-    uint8_t v = _cpu->A | basicRead(_cpu, addMode(_cpu));\
+    uint8_t v = _cpu->A | read_mos6502(_cpu, addMode(_cpu));\
     _cpu->A = v;\
     donz(_cpu, v);\
     return clockcycles;\
@@ -285,8 +244,8 @@ makeORA(absy, 4)
 
 #define makeASL(addMode, clockcycles) int ASL_##addMode (mos6502 *_cpu) {\
     uint16_t address = addMode(_cpu);\
-    uint16_t v = basicRead(_cpu, address) << 1;\
-    basicWrite(_cpu, address, (uint8_t) v);\
+    uint16_t v = read_mos6502(_cpu, address) << 1;\
+    write_mos6502(_cpu, address, (uint8_t) v);\
     donzc(_cpu, v);\
     return clockcycles;\
 }
@@ -313,7 +272,7 @@ int ASLA(mos6502 *_cpu) {
 makeJSR(abss, 6)
 
 #define makeBIT(addMode, clockcycles) int BIT_##addMode (mos6502 *_cpu) {\
-    uint8_t res = _cpu->A & basicRead(_cpu, addMode(_cpu));\
+    uint8_t res = _cpu->A & read_mos6502(_cpu, addMode(_cpu));\
     donz(_cpu, res);\
     setFlag(_cpu, FLAG_V, res & 0x40);\
     return clockcycles;\
@@ -322,7 +281,7 @@ makeBIT(zpg, 3)
 makeBIT(abss, 4)
 
 #define makeAND(addMode, clockcycles) int AND_##addMode (mos6502 *_cpu) {\
-    uint8_t v = _cpu->A & basicRead(_cpu, addMode(_cpu));\
+    uint8_t v = _cpu->A & read_mos6502(_cpu, addMode(_cpu));\
     _cpu->A = v;\
     donz(_cpu, v);\
     return clockcycles;\
@@ -338,9 +297,9 @@ makeAND(indy, 5);
 
 #define makeROL(addMode, clockcycles) int ROL_##addMode (mos6502 *_cpu) {\
     uint16_t address = addMode(_cpu);\
-    uint8_t v = basicRead(_cpu, address);\
+    uint8_t v = read_mos6502(_cpu, address);\
     v = (v << 1) | (v >> 7);\
-    basicWrite(_cpu, address, v);\
+    write_mos6502(_cpu, address, v);\
     donz(_cpu, v);\
     setFlag(_cpu, FLAG_C, v & 1);\
     return clockcycles;\
@@ -368,9 +327,9 @@ makeJMP(ind, 5)
 
 #define makeLSR(addMode, clockcycles) int LSR_##addMode (mos6502 *_cpu) {\
     uint16_t address = addMode(_cpu);\
-    uint8_t rval = basicRead(_cpu, address);\
+    uint8_t rval = read_mos6502(_cpu, address);\
     uint8_t wval = rval >> 1;\
-    basicWrite(_cpu, address, wval);\
+    write_mos6502(_cpu, address, wval);\
     donz(_cpu, wval);\
     setFlag(_cpu, FLAG_C, rval & 1);\
     return clockcycles;\
@@ -390,7 +349,7 @@ int LSRA(mos6502 *_cpu) {
 }
 
 #define makeEOR(addMode, clockcycles) int EOR_##addMode (mos6502 *_cpu) {\
-    _cpu->A ^= basicRead(_cpu, addMode(_cpu));\
+    _cpu->A ^= read_mos6502(_cpu, addMode(_cpu));\
     donz(_cpu, _cpu->A);\
     return clockcycles;\
 }
@@ -404,7 +363,7 @@ makeEOR(xind, 6)
 makeEOR(indy, 5)
 
 #define makeADC(addMode, clockcycles) int ADC_##addMode (mos6502 *_cpu) {\
-    uint8_t v = basicRead(_cpu, addMode(_cpu));\
+    uint8_t v = read_mos6502(_cpu, addMode(_cpu));\
     uint8_t mayover = ~(v ^ _cpu->A);\
     uint16_t total = v + _cpu->A + (testFlag(_cpu, FLAG_C) ? 1 : 0);\
     _cpu->A = (uint8_t) total;\
@@ -422,7 +381,7 @@ makeADC(xind, 6)
 makeADC(indy, 5)
 
 #define makeSBC(addMode, clockcycles) int SBC_##addMode(mos6502 *_cpu) {\
-    uint8_t v = ~basicRead(_cpu, addMode(_cpu));\
+    uint8_t v = ~read_mos6502(_cpu, addMode(_cpu));\
     uint16_t val = _cpu->A - v - (testFlag(_cpu, FLAG_C) ? 1 : 0);\
     _cpu->A = (uint8_t) val;\
     donzc(_cpu, val);\
@@ -439,13 +398,13 @@ makeSBC(xind, 6)
 makeSBC(indy, 5)
 
 #define makeCMP(addMode, clockcycles) int CMP_##addMode (mos6502 *_cpu) {\
-    uint16_t v = _cpu->A - basicRead(_cpu, addMode(_cpu));\
+    uint16_t v = _cpu->A - read_mos6502(_cpu, addMode(_cpu));\
     donzc(_cpu, v);\
     return clockcycles;\
 }
 
 #define makeCP_(reg, addMode, clockcycles) int CP##reg##_##addMode (mos6502 *_cpu) {\
-    uint16_t v = _cpu->reg - basicRead(_cpu, addMode(_cpu));\
+    uint16_t v = _cpu->reg - read_mos6502(_cpu, addMode(_cpu));\
     donzc(_cpu, v);\
     return clockcycles;\
 }
@@ -468,9 +427,9 @@ makeCP_(Y, abss, 4)
 
 #define makeROR(addMode, clockcycles) int ROR_##addMode (mos6502 *_cpu) {\
     uint16_t address = addMode(_cpu);\
-    uint8_t v = basicRead(_cpu, address);\
+    uint8_t v = read_mos6502(_cpu, address);\
     v = (v >> 1) | (v << 7);\
-    basicWrite(_cpu, address, v);\
+    write_mos6502(_cpu, address, v);\
     donz(_cpu, v);\
     setFlag(_cpu, FLAG_C, v & 0x80);\
     return clockcycles;\
@@ -490,7 +449,7 @@ int RORA(mos6502 *_cpu) {
 }
 
 #define makeST(reg, addMode, clockcycles) int ST##reg##_##addMode (mos6502 *_cpu) {\
-    basicWrite(_cpu, addMode(_cpu), _cpu->reg);\
+    write_mos6502(_cpu, addMode(_cpu), _cpu->reg);\
     return clockcycles;\
 }
 makeST(A, zpg, 3)
@@ -526,7 +485,7 @@ int TXS(mos6502 *_cpu) {
 }
 
 #define makeLD(reg, addMode, clockcycles) int LD##reg##_##addMode(mos6502 *_cpu) {\
-    _cpu->reg = basicRead(_cpu, addMode(_cpu));\
+    _cpu->reg = read_mos6502(_cpu, addMode(_cpu));\
     donz(_cpu, _cpu->reg);\
     return clockcycles;\
 }
@@ -573,7 +532,7 @@ makeB_S(N, 2)//BMI
 
 #define makeINC(addMode, clockcycles) int INC_##addMode(mos6502 *_cpu) {\
     uint16_t address = addMode(_cpu);\
-    basicWrite(_cpu, address, basicRead(_cpu, address) + 1);\
+    write_mos6502(_cpu, address, read_mos6502(_cpu, address) + 1);\
     return clockcycles;\
 }
 
@@ -585,8 +544,8 @@ makeB_S(N, 2)//BMI
 
 #define makeDEC(addMode, clockcycles) int DEC_##addMode (mos6502 *_cpu) {\
     uint16_t address = addMode(_cpu);\
-    uint8_t val = basicRead(_cpu, address) - 1;\
-    basicWrite(_cpu, address, val);\
+    uint8_t val = read_mos6502(_cpu, address) - 1;\
+    write_mos6502(_cpu, address, val);\
     donz(_cpu, val);\
     return clockcycles;\
 }
@@ -668,7 +627,7 @@ static const mos6502instruction cpuopmap[256] = {
 
 int stepCpu(mos6502 *_cpu) {
     //printf("running instruction from 0x%04X\n", _cpu->PC);
-    uint8_t opcode = basicRead(_cpu, _cpu->PC++);
+    uint8_t opcode = read_mos6502(_cpu, _cpu->PC++);
     fprintf(stdout, "RUNNING 0x%04X 0x%02X\n",  _cpu->PC-1, opcode);
     return cpuopmap[opcode](_cpu);
 }

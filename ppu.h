@@ -19,8 +19,8 @@ struct ppu {
     uint8_t PPUDATA;
     uint8_t OAMDMA;
 
-    uint8_t vram[0x800]; // 2K of VRAM
-    uint8_t oamram[0x100]; // 256 bytes of OAM RAM
+    uint8_t vram[0x800];
+    uint8_t oamram[0x200];
     uint8_t* vramMap[4];
 
     uint32_t frameCounter;

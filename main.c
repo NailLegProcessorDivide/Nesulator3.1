@@ -26,15 +26,15 @@ int main(int iargs, char** args){
         fputs("ERROR: ROM failed to initialise\n", stderr);
         return -1;
     }/*
-    if (!addDevice(&mycpu, &ram)) {
+    if (!add_mos6502_device(&mycpu, &ram)) {
         fputs(stderr, "ERROR: Failed to add RAM\n");
         return -1;
     }
-    if (!addDevice(&mycpu, &rom)) {
+    if (!add_mos6502_device(&mycpu, &rom)) {
         fputs(stderr, "ERROR: Failed to add ROM\n");
         return -1;
     }*/
-    if (!addDevice(&mycpu, &nc.cpuRom)) {
+    if (!add_mos6502_device(&mycpu, &nc.cpuRom)) {
         fputs("ERROR: Failed to add CPU ROM\n", stderr);
         return -1;
     }
