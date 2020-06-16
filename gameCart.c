@@ -131,7 +131,7 @@ int createNesCart(nesCart* cart, const char* fileName) {
     return 0;
 }
 
-void deleteNesCart(nesCart* cart) {
+void destroyNesCart(nesCart* cart) {
     free(cart->cpuRom.data);
     fputs("DELETED CARTRIDGE", stdout);
 }
