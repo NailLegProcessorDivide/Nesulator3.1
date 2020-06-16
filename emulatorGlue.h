@@ -30,12 +30,12 @@ typedef struct device816 device816;
             val = dev->readfun(dev->data, address - dev->start);\
         }\
     }\
-    fprintf(stdout, "READ %X %X\n", address, val);\
+    /*fprintf(stdout, "READ %X %X\n", address, val);*/\
     return val;\
 }
 
 #define makeDeviceWriter(type) void write_##type(type* base, uint16_t address, uint8_t value) {\
-    fprintf(stdout, "WRITE %X %X\n", address, value);\
+    /*fprintf(stdout, "WRITE %X %X\n", address, value);*/\
     for (size_t i = 0; i < base->deviceCount; i++) {\
         device816 *dev = &base->devices[i];\
         if (dev->start <= address && dev->start + dev->length > address) {\

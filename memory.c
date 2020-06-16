@@ -5,7 +5,7 @@
 #include <string.h>
 
 uint8_t readMem816(void *mem, uint16_t add) {
-    printf("READ MEM @ 0x%04X\n", add);
+    //printf("READ MEM @ 0x%04X\n", add);
     return ((uint8_t *) mem)[add];
 }
 

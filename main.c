@@ -17,7 +17,9 @@ int main(int iargs, char** args){
     device816 rom;
     nesCart nc;
 
-    createNesCart(&nc, "F:\\nestest.nes");
+    createNesCart(&nc, "X:\\nestest.nes");
+
+
     if (!createRamDevice816(&ram, 0x800, 0)) {
         fputs("ERROR: RAM failed to initialise\n", stderr);
         return -1;
@@ -27,14 +29,9 @@ int main(int iargs, char** args){
         return -1;
     }
     if (!add_mos6502_device(&mycpu, &ram)) {
-        puts("add ram error");
+        fputs("ERROR: Failed to add CPU RAM\n", stderr);
         return -1;
     }
-    /*
-    if (!addDevice(&mycpu, &rom)) {
-        puts("add rom error");
-        return -1;
-    }*/
     if (!add_mos6502_device(&mycpu, &nc.cpuRom)) {
         fputs("ERROR: Failed to add CPU ROM\n", stderr);
         return -1;
