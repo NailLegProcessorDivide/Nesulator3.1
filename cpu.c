@@ -73,6 +73,7 @@ uint8_t pop(mos6502 *_cpu) {
     return basicRead(_cpu, 0x100 + (++_cpu->SP));
 }
 
+
 /************************************************
  *  FLAG FUNCTIONS
  ***********************************************/
@@ -247,6 +248,8 @@ int BRK(mos6502 *_cpu) {
     setFlags(_cpu, FLAG_B);
     push(_cpu, _cpu->flags);
     setFlags(_cpu, FLAG_I);
+    _cpu->PC = basicRead(_cpu, IRQ_VEC);
+    _cpu->PC |= basicRead(_cpu, IRQ_VEC + 1) << 8;
     return 7;
 //exit(1);
 }//7 cycles ----------------IMPLEMENT THIS WHEN I KNOW WHAT IT DOES---------------------------

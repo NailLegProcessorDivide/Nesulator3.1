@@ -25,11 +25,12 @@ int main(int iargs, char** args){
     if (!createRomDevice816(&rom, 0x8000, 0x8000)) {
         puts("rom error");
         return -1;
-    }/*
+    }
     if (!addDevice(&mycpu, &ram)) {
         puts("add ram error");
         return -1;
     }
+    /*
     if (!addDevice(&mycpu, &rom)) {
         puts("add rom error");
         return -1;
@@ -49,7 +50,8 @@ int main(int iargs, char** args){
     //    puts("add eater error");
     //    return -1;
     //}
-    mycpu.PC = 0xe203;
+
+    triggerRST(&mycpu);
     for(int i = 0; i < 128; ++i) {
         stepCpu(&mycpu);
     }
