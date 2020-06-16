@@ -15,6 +15,6 @@ struct nesCart{
 
 typedef struct nesCart nesCart;
 
-void createNesCart(nesCart* cart, const char* fileName);
+int createNesCart(nesCart* cart, const char* fileName);
 void destroyNesCart(nesCart* cart);
 #endif //NESULATOR_GAMECART_H

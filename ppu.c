@@ -25,7 +25,7 @@ uint8_t read(void *myppu, uint16_t address) {
             _ppu->PPUADDR += (_ppu->PPUCTRL & 0b00000100) == 0 ? 1 : 32; // determine increment from 2nd bit of PPUCTRL
             return data;
     }
-    printf("warning attempted to read from un mapped memory");
+    fprintf(stderr, "WARNING: attempted to read from unmapped memory");
     return 0;
 }
 

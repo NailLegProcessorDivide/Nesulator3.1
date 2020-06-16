@@ -17,7 +17,7 @@ void createCpu(mos6502 *_cpu) {
     _cpu->interrupts = 0;
     _cpu->devices = nullptr;
     _cpu->deviceCount = 0;
-    printf("created cpu\n");
+    fputs("CREATED CPU\n", stdout);
 }
 
 bool addDevice(mos6502 *_cpu, const device816 *dev) {
@@ -51,12 +51,12 @@ uint8_t basicRead(mos6502 *_cpu, uint16_t address) {
             val = dev->readfun(dev->data, address - dev->start);
         }
     }
-    printf("read %X %X\n", address, val);
+    fprintf(stdout, "READ %X %X\n", address, val);
     return val;
 }
 
 void basicWrite(mos6502 *_cpu, uint16_t address, uint8_t value) {
-    printf("write %X %X\n", address, value);
+    fprintf(stdout, "WRITE %X %X\n", address, value);
     for (size_t i = 0; i < _cpu->deviceCount; i++) {
         device816 *dev = &(_cpu->devices[i]);
         if (dev->start <= address && dev->start + dev->length > address) {
@@ -236,7 +236,7 @@ uint16_t inline rel(mos6502 *_cpu) {
  ***********************************************/
 
 int NOP(mos6502 *_cpu) {
-    printf("nop at %X\n", _cpu->PC);
+    fprintf(stdout, "NOP at %X\n", _cpu->PC);
     return 2;
 }
 
@@ -366,7 +366,6 @@ int ROLA(mos6502 *_cpu) {
 makeJMP(abss, 3)
 makeJMP(ind, 5)
 
-
 #define makeLSR(addMode, clockcycles) int LSR_##addMode (mos6502 *_cpu) {\
     uint16_t address = addMode(_cpu);\
     uint8_t rval = basicRead(_cpu, address);\
@@ -380,7 +379,6 @@ makeLSR(zpg, 3)
 makeLSR(zpgx, 4)
 makeLSR(abss, 4)
 makeLSR(absx, 5)
-
 
 int LSRA(mos6502 *_cpu) {
     uint8_t rval = _cpu->A;
@@ -445,6 +443,7 @@ makeSBC(indy, 5)
     donzc(_cpu, v);\
     return clockcycles;\
 }
+
 #define makeCP_(reg, addMode, clockcycles) int CP##reg##_##addMode (mos6502 *_cpu) {\
     uint16_t v = _cpu->reg - basicRead(_cpu, addMode(_cpu));\
     donzc(_cpu, v);\
@@ -557,6 +556,7 @@ makeLD(Y, absx, 4)
     if (!testFlag(_cpu, FLAG_##flag)) { _cpu->PC = add; }\
     return clockcycles;\
 }
+
 #define makeB_S(flag, clockcycles) int B##flag##S (mos6502 *_cpu) {\
     uint16_t add = rel(_cpu);\
     if (testFlag(_cpu, FLAG_##flag)) { _cpu->PC = add; }\
@@ -669,6 +669,11 @@ static const mos6502instruction cpuopmap[256] = {
 int stepCpu(mos6502 *_cpu) {
     //printf("running instruction from 0x%04X\n", _cpu->PC);
     uint8_t opcode = basicRead(_cpu, _cpu->PC++);
-    printf("running 0x%04X 0x%02X\n",  _cpu->PC-1, opcode);
+    fprintf(stdout, "RUNNING 0x%04X 0x%02X\n",  _cpu->PC-1, opcode);
     return cpuopmap[opcode](_cpu);
+}
+
+void printRegisters(mos6502 *_cpu) {
+    fprintf(stdout, "CPU REGISTERS:\n-- A    =0x%02X\n-- X    =0x%02X\n-- Y    =0x%02x\n-- SP   =0x%02X\n-- PC   =0x%04X\n-- FLAGS=0x%02X\n"
+            , _cpu->A, _cpu->X, _cpu->Y, _cpu->SP + 0x0100, _cpu->PC, _cpu->flags);
 }

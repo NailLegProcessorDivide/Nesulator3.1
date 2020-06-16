@@ -17,25 +17,25 @@ int main(int iargs, char** args){
     device816 rom;
     nesCart nc;
 
-    createNesCart(&nc, "C:\\Users\\david\\CLionProjects\\Nesulator3.1\\smb.nes");
+    createNesCart(&nc, "C:/Users/david/CLionProjects/Nesulator3.1/smb.nes");
     if (!createRamDevice816(&ram, 0x800, 0)) {
-        puts("ram error");
+        fputs("ERROR: RAM failed to initialise\n", stderr);
         return -1;
     }
     if (!createRomDevice816(&rom, 0x8000, 0x8000)) {
-        puts("rom error");
+        fputs("ERROR: ROM failed to initialise\n", stderr);
         return -1;
     }/*
     if (!addDevice(&mycpu, &ram)) {
-        puts("add ram error");
+        fputs(stderr, "ERROR: Failed to add RAM\n");
         return -1;
     }
     if (!addDevice(&mycpu, &rom)) {
-        puts("add rom error");
+        fputs(stderr, "ERROR: Failed to add ROM\n");
         return -1;
     }*/
     if (!addDevice(&mycpu, &nc.cpuRom)) {
-        puts("add cpu rom error");
+        fputs("ERROR: Failed to add CPU ROM\n", stderr);
         return -1;
     }
 
@@ -55,7 +55,8 @@ int main(int iargs, char** args){
     }*/
     destroyRamDevice816(&ram);
     destroyRomDevice816(&rom);
-    printf("successful run, A = 0x%02X\n", mycpu.A);
+    fputs("EXIT SUCCESS\n", stdout);
+    printRegisters(&mycpu);
 
     return 0;
 }

@@ -35,7 +35,7 @@ uint8_t basicReader(void* data, uint16_t addr)
 
 uint8_t basicMirroredReader(void* data, uint16_t addr)
 {
-    return ((uint8_t*)data)[addr & 0x3fff];
+    return ((uint8_t*)data)[addr & 0x3FFF];
 }
 
 uint8_t mirroredVRomReader(void* data, uint16_t addr)
@@ -48,37 +48,38 @@ void nullWrite(void* data, uint16_t addr, uint8_t val)
 
 }
 
-void createNRom (nesCart* cart, const uint8_t* romData, const nesFileHeader* headerData)
+void createNRom (nesCart* cart, const uint8_t* romData, const nesFileHeader* hData)
 {
     cart->cpuRom.data = romData;
     cart->cpuRom.length = 0x8000;
     cart->cpuRom.start = 0x8000;
     cart->cpuRom.writefun = nullWrite;
 
-    cart->ppuRom.data = romData + ROM_PAGE_SIZE * headerData->nRomBanks;
+    cart->ppuRom.data = romData + ROM_PAGE_SIZE * hData->nRomBanks;
     cart->ppuRom.length = 0x2000;
     cart->ppuRom.start = 0;
     cart->ppuRom.readfun = mirroredVRomReader;
     cart->ppuRom.writefun = nullWrite;
 
-    if (headerData->nRomBanks == 2){ // 2 banks - full 32K ROM
+    if (hData->nRomBanks == 2){ // 2 banks - full 32K ROM
         cart->cpuRom.readfun = basicReader;
     }
-    else { //1 bank - mirrored 16K ROM
+    else { // 1 bank - mirrored 16K ROM
         cart->cpuRom.readfun = basicMirroredReader;
     }
-    printf("made new cart with mapper type 0, %i cpu banks\n", headerData->nRomBanks);
+    printf("CREATED CARTRIDGE: mapper type=%i, CPU banks=%i", hData->mapperID, hData->nRomBanks);
+    printf(", PRG ROM=%i*16K, CHR ROM=%i*8K\n", hData->nRomBanks, hData->nVRomBanks);
 }
 
-void createNesCart(nesCart* cart, const char* fileName) {
+int createNesCart(nesCart* cart, const char* fileName) {
     FILE* file = fopen(fileName, "rb"); // read file in binary mode
     uint8_t nesStr[4];
 
     fread(nesStr, 1, 4, file);
     if (memcmp(nesStr, "NES", 3)) { // first 3 bytes must start with NES for it to be a valid file
-        puts("not a nes file\n");
-        fclose(file); // don't forget to close file
-        return;
+        fputs("ERROR: file isn't NES format", stderr);
+        fclose(file); // close file
+        return -1;
     }
 
     nesFileHeader hData; // header data
@@ -86,13 +87,12 @@ void createNesCart(nesCart* cart, const char* fileName) {
     //printf("c %i, p %i, %i\n", headerData.nRomBanks, headerData.nVRomBanks, nesStr[3]);
     fread(&hData.nRomBanks, 1, 1, file); // byte 4 (size of PRG ROM in 16KB units)
     fread(&hData.nVRomBanks, 1, 1, file); // byte 5 (size of CHR ROM in 8KB units)
-    printf("PRG ROM: %iK (%i*16)\nCHR ROM: %iK (%i*8)\n", 16 * hData.nRomBanks, hData.nRomBanks, 8 * hData.nVRomBanks, hData.nVRomBanks);
 
     fread(&flags6, sizeof(uint8_t), 1, file); // byte 6 (flags for mapper, mirroring, battery, trainer)
     fread(&flags7, sizeof(uint8_t), 1, file); // byte 7 (flags for mapper, VS/Playchoice, NES 2.0)
 
-    // high nibble of flags6 = low nibble of mapper id
-    // high nibble of flags7 = high nibble of mapper id
+    // high nibble of flags6 = low nibble of mapper ID
+    // high nibble of flags7 = high nibble of mapper ID
     hData.mapperID = (flags7 & 0xF0) | (flags6 >> 4);
 
     hData.verticalMirror = flags6 & BIT(0);
@@ -116,7 +116,7 @@ void createNesCart(nesCart* cart, const char* fileName) {
     size_t fileDataSize = ROM_PAGE_SIZE * hData.nRomBanks + VROM_PAGE_SIZE * hData.nVRomBanks;
     uint8_t* gameData = malloc(sizeof(uint8_t) * fileDataSize);
     fread(gameData, sizeof(uint8_t), fileDataSize, file);
-    fclose(file);
+    fclose(file); // close file
 
     switch(hData.mapperID) {
         case 0: // NROM
@@ -125,7 +125,14 @@ void createNesCart(nesCart* cart, const char* fileName) {
         // TODO: MORE MAPPERS!! :D
         default:
             free(gameData);
-            puts("no matching format for the mapper found");
+            fputs("ERROR: no matching format for the mapper", stderr);
+            return -1;
     }
+    return 0;
+}
+
+void deleteNesCart(nesCart* cart) {
+    free(cart->cpuRom.data);
+    fputs("DELETED CARTRIDGE", stdout);
 }
 

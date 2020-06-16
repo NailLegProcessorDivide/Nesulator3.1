@@ -7,7 +7,6 @@
 
 #include "emulatorGlue.h"
 
-
 bool createRamDevice816(device816*, uint16_t, uint16_t);
 void destroyRamDevice816(device816*);
 
