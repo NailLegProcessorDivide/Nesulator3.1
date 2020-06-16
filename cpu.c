@@ -20,7 +20,7 @@ void createCpu(mos6502 *_cpu) {
     printf("created cpu\n");
 }
 
-bool addDevice(mos6502 *_cpu, device816 *dev) {
+bool addDevice(mos6502 *_cpu, const device816 *dev) {
     device816 *newdevs;
     if (_cpu->deviceCount == 0) {
         _cpu->deviceCount++;
@@ -44,16 +44,19 @@ bool addDevice(mos6502 *_cpu, device816 *dev) {
  ***********************************************/
 
 uint8_t basicRead(mos6502 *_cpu, uint16_t address) {
+    uint8_t val = 0;
     for (size_t i = 0; i < _cpu->deviceCount; i++) {
         device816* dev = &_cpu->devices[i];
         if (dev->start <= address && dev->start + dev->length > address) {
-            return dev->readfun(dev->data, address - dev->start);
+            val = dev->readfun(dev->data, address - dev->start);
         }
     }
-    return 0;
+    printf("read %X %X\n", address, val);
+    return val;
 }
 
 void basicWrite(mos6502 *_cpu, uint16_t address, uint8_t value) {
+    printf("write %X %X\n", address, value);
     for (size_t i = 0; i < _cpu->deviceCount; i++) {
         device816 *dev = &(_cpu->devices[i]);
         if (dev->start <= address && dev->start + dev->length > address) {
@@ -664,8 +667,8 @@ static const mos6502instruction cpuopmap[256] = {
 };
 
 int stepCpu(mos6502 *_cpu) {
-    printf("running instruction from 0x%04X\n", _cpu->PC);
+    //printf("running instruction from 0x%04X\n", _cpu->PC);
     uint8_t opcode = basicRead(_cpu, _cpu->PC++);
-    printf("running 0x%02X\n", opcode);
+    printf("running 0x%04X 0x%02X\n",  _cpu->PC-1, opcode);
     return cpuopmap[opcode](_cpu);
 }

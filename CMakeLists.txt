@@ -3,4 +3,4 @@ project(Nesulator C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(Nesulator main.c cpu.h emulatorGlue.h memory.h ppu.h cpu.c memory.c ppu.c)
+add_executable(Nesulator main.c cpu.h emulatorGlue.h memory.h ppu.h cpu.c memory.c ppu.c gameCart.c gameCart.h)

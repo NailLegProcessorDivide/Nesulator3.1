@@ -1,6 +1,7 @@
 #include "ppu.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #define LINEWIDTH 341
 #define LINECOUNT 262
@@ -11,7 +12,7 @@
 
 uint8_t read(void *myppu, uint16_t address) {
     ppu *_ppu = (ppu *) myppu;
-    address &= 0b00000111; // Get the last 3 bits of the address to determine the register (registers are mirrored)
+    address &= 0x0007; // Get the last 3 bits of the address to determine the register (registers are mirrored)
     switch (address) {
         case 2: // PPUSTATUS
             _ppu->scrollWriteNo = 0; // reset address latch for PPUSCROLL## and PPUADDR
@@ -24,11 +25,13 @@ uint8_t read(void *myppu, uint16_t address) {
             _ppu->PPUADDR += (_ppu->PPUCTRL & 0b00000100) == 0 ? 1 : 32; // determine increment from 2nd bit of PPUCTRL
             return data;
     }
+    printf("warning attempted to read from un mapped memory");
+    return 0;
 }
 
 void write(void *myppu, uint16_t address, uint8_t val) {
     ppu *_ppu = (ppu *) myppu;
-    address &= 0b00000111;
+    address &= 0x0007;
     switch (address) {
         case 0: // PPUCTRL
             _ppu->PPUCTRL = val;
@@ -85,6 +88,10 @@ void createPPU(ppu *_ppu) {
 
     _ppu->scrollWriteNo = 0;
     _ppu->PPUADDRWriteNo = 0;
+    _ppu->vramMap[0] = &_ppu->vram[0x0000];
+    _ppu->vramMap[1] = &_ppu->vram[0x0000];
+    _ppu->vramMap[2] = &_ppu->vram[0x0400];
+    _ppu->vramMap[3] = &_ppu->vram[0x0400];
 }
 
 void stepPPU(ppu *_ppu) {

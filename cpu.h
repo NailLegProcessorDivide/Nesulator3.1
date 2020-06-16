@@ -27,7 +27,7 @@ typedef struct mos6502 mos6502;
 typedef struct cpuState cpuState;
 
 void createCpu(mos6502*);
-bool addDevice(mos6502*, device816*);
+bool addDevice(mos6502*, const device816*);
 int stepCpu(mos6502*);
 
 void triggerNMI(mos6502* _cpu);
