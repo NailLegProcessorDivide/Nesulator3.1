@@ -85,7 +85,7 @@ inline void donzc(mos6502 *_cpu, uint16_t val) {
 void triggerNMI(mos6502 *_cpu) {
     _cpu->PC += 2;
     push(_cpu, _cpu->PC >> 8);
-    push(_cpu, _cpu->PC & 0xf);
+    push(_cpu, _cpu->PC & 0xff);
     push(_cpu, _cpu->flags);
     setFlags(_cpu, FLAG_I);
     _cpu->PC = read_mos6502(_cpu, NMI_VEC);
@@ -95,7 +95,7 @@ void triggerNMI(mos6502 *_cpu) {
 void triggerRST(mos6502 *_cpu) {
     _cpu->PC += 2;
     push(_cpu, _cpu->PC >> 8);
-    push(_cpu, _cpu->PC & 0xf);
+    push(_cpu, _cpu->PC & 0xff);
     push(_cpu, _cpu->flags);
     setFlags(_cpu, FLAG_I);
     _cpu->PC = read_mos6502(_cpu, RST_VEC);
@@ -106,7 +106,7 @@ void triggerRST(mos6502 *_cpu) {
 void triggerIRQ(mos6502 *_cpu) {
     _cpu->PC += 2;
     push(_cpu, _cpu->PC >> 8);
-    push(_cpu, _cpu->PC & 0xf);
+    push(_cpu, _cpu->PC & 0xff);
     push(_cpu, _cpu->flags);
     setFlags(_cpu, FLAG_I);
     _cpu->PC = read_mos6502(_cpu, IRQ_VEC);
@@ -203,7 +203,7 @@ int NOP(mos6502 *_cpu) {
 int BRK(mos6502 *_cpu) {
     _cpu->PC += 2;
     push(_cpu, _cpu->PC >> 8);
-    push(_cpu, _cpu->PC & 0xf);
+    push(_cpu, _cpu->PC & 0xff);
     setFlags(_cpu, FLAG_B);
     push(_cpu, _cpu->flags);
     setFlags(_cpu, FLAG_I);
