@@ -17,7 +17,7 @@ int main(int iargs, char** args){
     device816 rom;
     nesCart nc;
 
-    createNesCart(&nc, "F:\\instr_test-v5\\rom_singles\\01-basics.nes");
+    createNesCart(&nc, "C:\\Users\\david\\CLionProjects\\Nesulator3.1\\smb.nes");
     if (!createRamDevice816(&ram, 0x800, 0)) {
         puts("ram error");
         return -1;
@@ -39,7 +39,7 @@ int main(int iargs, char** args){
         return -1;
     }
 
-    device816 eaterTests;
+    /*device816 eaterTests;
     eaterTests.length = 0xFFFF;
     eaterTests.readfun = eaterRead;
     eaterTests.writefun = eaterWrite;
@@ -52,7 +52,7 @@ int main(int iargs, char** args){
     mycpu.PC = 0xe203;
     for(int i = 0; i < 128; ++i) {
         stepCpu(&mycpu);
-    }
+    }*/
     destroyRamDevice816(&ram);
     destroyRomDevice816(&rom);
     printf("successful run, A = 0x%02X\n", mycpu.A);
