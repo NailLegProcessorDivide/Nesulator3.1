@@ -27,12 +27,14 @@ typedef struct mos6502 mos6502;
 typedef struct cpuState cpuState;
 
 void createCpu(mos6502*);
-bool addDevice(mos6502*, const device816*);
 int stepCpu(mos6502*);
+makeDeviceAdderDeclaration(mos6502);
 
 void triggerNMI(mos6502* _cpu);
 void triggerRST(mos6502* _cpu);
 void triggerIRQ(mos6502* _cpu);
+
+void printRegisters(mos6502 *_cpu);
 
 typedef int (*mos6502instruction)(mos6502*);
 

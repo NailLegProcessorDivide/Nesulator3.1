@@ -1,4 +1,5 @@
 #include "ppu.h"
+#include "emulatorGlue.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,6 +10,9 @@
 #define PICTUREHEIGHT 240
 #define PRERENDEREND 21
 #define PICTUREEND 261
+
+makeRead(ppu);
+makeWrite(ppu);
 
 uint8_t read(void *myppu, uint16_t address) {
     ppu *_ppu = (ppu *) myppu;
@@ -25,7 +29,7 @@ uint8_t read(void *myppu, uint16_t address) {
             _ppu->PPUADDR += (_ppu->PPUCTRL & 0b00000100) == 0 ? 1 : 32; // determine increment from 2nd bit of PPUCTRL
             return data;
     }
-    printf("warning attempted to read from un mapped memory");
+    fprintf(stderr, "WARNING: attempted to read from unmapped memory");
     return 0;
 }
 

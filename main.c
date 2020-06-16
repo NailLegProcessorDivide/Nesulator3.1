@@ -17,13 +17,13 @@ int main(int iargs, char** args){
     device816 rom;
     nesCart nc;
 
-    createNesCart(&nc, "F:\\instr_test-v5\\rom_singles\\01-basics.nes");
+    createNesCart(&nc, "C:/Users/david/CLionProjects/Nesulator3.1/smb.nes");
     if (!createRamDevice816(&ram, 0x800, 0)) {
-        puts("ram error");
+        fputs("ERROR: RAM failed to initialise\n", stderr);
         return -1;
     }
     if (!createRomDevice816(&rom, 0x8000, 0x8000)) {
-        puts("rom error");
+        fputs("ERROR: ROM failed to initialise\n", stderr);
         return -1;
     }
     if (!addDevice(&mycpu, &ram)) {
@@ -35,12 +35,12 @@ int main(int iargs, char** args){
         puts("add rom error");
         return -1;
     }*/
-    if (!addDevice(&mycpu, &nc.cpuRom)) {
-        puts("add cpu rom error");
+    if (!add_mos6502_device(&mycpu, &nc.cpuRom)) {
+        fputs("ERROR: Failed to add CPU ROM\n", stderr);
         return -1;
     }
 
-    device816 eaterTests;
+    /*device816 eaterTests;
     eaterTests.length = 0xFFFF;
     eaterTests.readfun = eaterRead;
     eaterTests.writefun = eaterWrite;
@@ -54,10 +54,11 @@ int main(int iargs, char** args){
     triggerRST(&mycpu);
     for(int i = 0; i < 128; ++i) {
         stepCpu(&mycpu);
-    }
+    }*/
     destroyRamDevice816(&ram);
     destroyRomDevice816(&rom);
-    printf("successful run, A = 0x%02X\n", mycpu.A);
+    fputs("EXIT SUCCESS\n", stdout);
+    printRegisters(&mycpu);
 
     return 0;
 }
