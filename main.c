@@ -17,7 +17,7 @@ int main(int iargs, char** args){
     device816 rom;
     nesCart nc;
 
-    createNesCart(&nc, "C:/Users/david/CLionProjects/Nesulator3.1/smb.nes");
+    createNesCart(&nc, "F:\\nestest.nes");
     if (!createRamDevice816(&ram, 0x800, 0)) {
         fputs("ERROR: RAM failed to initialise\n", stderr);
         return -1;
@@ -26,7 +26,7 @@ int main(int iargs, char** args){
         fputs("ERROR: ROM failed to initialise\n", stderr);
         return -1;
     }
-    if (!addDevice(&mycpu, &ram)) {
+    if (!add_mos6502_device(&mycpu, &ram)) {
         puts("add ram error");
         return -1;
     }
@@ -50,11 +50,12 @@ int main(int iargs, char** args){
     //    puts("add eater error");
     //    return -1;
     //}
-
+    */
     triggerRST(&mycpu);
-    for(int i = 0; i < 128; ++i) {
+    mycpu.PC = 0xc000;
+    for(int i = 0; i < 1280; ++i) {
         stepCpu(&mycpu);
-    }*/
+    }
     destroyRamDevice816(&ram);
     destroyRomDevice816(&rom);
     fputs("EXIT SUCCESS\n", stdout);

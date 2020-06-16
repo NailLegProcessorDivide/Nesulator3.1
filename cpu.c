@@ -207,8 +207,8 @@ int BRK(mos6502 *_cpu) {
     setFlags(_cpu, FLAG_B);
     push(_cpu, _cpu->flags);
     setFlags(_cpu, FLAG_I);
-    _cpu->PC = basicRead(_cpu, IRQ_VEC);
-    _cpu->PC |= basicRead(_cpu, IRQ_VEC + 1) << 8;
+    _cpu->PC = read_mos6502(_cpu, IRQ_VEC);
+    _cpu->PC |= read_mos6502(_cpu, IRQ_VEC + 1) << 8;
     return 7;
 //exit(1);
 }//7 cycles ----------------IMPLEMENT THIS WHEN I KNOW WHAT IT DOES---------------------------
@@ -266,8 +266,8 @@ int ASLA(mos6502 *_cpu) {
 
 #define makeJSR(addMode, clockcycles) int JSR(mos6502 *_cpu) {\
     uint16_t v = addMode(_cpu);\
-    _cpu->PC += 2;\
-    push(_cpu, _cpu->PC & 0xf);\
+    _cpu->PC-=1;\
+    push(_cpu, _cpu->PC & 0x00ff);\
     push(_cpu, _cpu->PC >> 8);\
     _cpu->PC = v;\
     return clockcycles;\
@@ -599,7 +599,7 @@ int RTI(mos6502 *_cpu) {
 }
 
 int RTS(mos6502 *_cpu) {
-    _cpu->PC = (pop(_cpu) << 8) + pop(_cpu);
+    _cpu->PC = (pop(_cpu) << 8) + pop(_cpu)+1;
     return 6;
 }
 
