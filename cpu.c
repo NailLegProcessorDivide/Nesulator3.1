@@ -655,37 +655,38 @@ int stepCpu(mos6502 *_cpu) {
     uint8_t opcode = read_mos6502(_cpu, _cpu->PC++);
 
     printf("%i\t-----------------------------------------------------------------------------------------------------------\n", counter);
-    printf("|");
-    if (pc_expected[counter] != _cpu->PC - 1) {
-        printf(" !!!PC!!! ");
-    }
-    if (opcode_expected[counter] != opcode) {
-        printf(" !!!OPCODE!!! ");
-    }
-    if (a_expected[counter] != _cpu->A) {
-        printf(" !!!A!!! ");
-    }
-    if (x_expected[counter] != _cpu->X) {
-        printf(" !!!X!!! ");
-    }
-    if (y_expected[counter] != _cpu->Y) {
-        printf(" !!!Y!!! ");
-    }
-    if (flag_expected[counter] != _cpu->flags + 32) {
-        printf(" !!!FLAGS!!! ");
-    }
-    if (sp_expected[counter] != _cpu->SP) {
-        printf(" !!!SP!!! ");
-    }
-
-    puts("\n|");
 
     printf("| EXPECTED ==>\t 0x%04X 0x%02X (%s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
             pc_expected[counter], opcode_expected[counter], instructions[opcode_expected[counter]], a_expected[counter], x_expected[counter], y_expected[counter], BYTE_TO_FLAGS(flag_expected[counter]), sp_expected[counter]);
 
     printf("| ACTUAL   ==>\t 0x%04X 0x%02X (%s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
           _cpu->PC-1, opcode, instructions[opcode], _cpu->A, _cpu->X, _cpu->Y, BYTE_TO_FLAGS(_cpu->flags + 32), _cpu->SP);
-    puts("-------------------------------------------------------------------------------------------------------------------\n");
+
+    printf("| NOT SAME ==> \t");
+    if (pc_expected[counter] != _cpu->PC - 1) {
+        printf(" !!PC!! ");
+    }
+    if (opcode_expected[counter] != opcode) {
+        printf(" !!OPCODE!! ");
+    }
+    if (a_expected[counter] != _cpu->A) {
+        printf(" !!A!! ");
+    }
+    if (x_expected[counter] != _cpu->X) {
+        printf(" !!X!! ");
+    }
+    if (y_expected[counter] != _cpu->Y) {
+        printf(" !!Y!! ");
+    }
+    if (flag_expected[counter] != _cpu->flags + 32) {
+        printf(" !!FLAGS!! ");
+    }
+    if (sp_expected[counter] != _cpu->SP) {
+        printf(" !!SP!! ");
+    }
+
+    puts("\n-------------------------------------------------------------------------------------------------------------------\n");
+
 
     //fprintf(stdout, "RUNNING 0x%04X 0x%02X\n",  _cpu->PC-1, opcode);
     counter++;
