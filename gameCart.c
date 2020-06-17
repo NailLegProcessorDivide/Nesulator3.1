@@ -73,6 +73,10 @@ void createNRom (nesCart* cart, const uint8_t* romData, const nesFileHeader* hDa
 
 int createNesCart(nesCart* cart, const char* fileName) {
     FILE* file = fopen(fileName, "rb"); // read file in binary mode
+    if (file==NULL){
+        fputs("file not found\n", stderr);
+        return -1;
+    }
     uint8_t nesStr[4];
 
     fread(nesStr, 1, 4, file);

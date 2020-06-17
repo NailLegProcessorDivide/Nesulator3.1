@@ -17,7 +17,10 @@ int main(int iargs, char** args){
     device816 rom;
     nesCart nc;
 
-    createNesCart(&nc, "X:\\nestest.nes");
+    if(createNesCart(&nc, "F:\\nestest.nes")){
+    //if(createNesCart(&nc, "X:\\nestest.nes")){
+        return -1;
+    }
 
 
     if (!createRamDevice816(&ram, 0x800, 0)) {
