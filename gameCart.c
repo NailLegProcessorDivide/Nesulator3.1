@@ -11,6 +11,7 @@
 // macro to not hurt Microsoft's feels too much
 #define _CRT_SECURE_NO_WARNINGS 1 // ~~my compiler doesn't care if this is defined or not
 
+#define BANK_SIZE 0x0400
 #define ROM_PAGE_SIZE 0x4000
 #define VROM_PAGE_SIZE 0x2000
 
@@ -28,47 +29,44 @@ struct nesFileHeader {
 
 typedef struct nesFileHeader nesFileHeader;
 
-uint8_t basicReader(void* data, uint16_t addr)
-{
+uint8_t basicReader(void* data, uint16_t addr) {
 	return ((uint8_t*)data)[addr];
 }
 
-uint8_t basicMirroredReader(void* data, uint16_t addr)
-{
+uint8_t basicMirroredReader(void* data, uint16_t addr) {
 	return ((uint8_t*)data)[addr & 0x3FFF];
 }
 
-uint8_t mirroredVRomReader(void* data, uint16_t addr)
-{
+uint8_t mirroredVRomReader(void* data, uint16_t addr) {
 	return ((uint8_t*)data)[addr];
 }
 
-void nullWrite(void* data, uint16_t addr, uint8_t val)
-{
+void nullWrite(void* data, uint16_t addr, uint8_t val) {
 
 }
 
-void createNRom(nesCart* cart, const uint8_t* romData, const nesFileHeader* hData)
-{
-	cart->cpuRom.data = romData;
-	cart->cpuRom.length = 0x8000;
-	cart->cpuRom.start = 0x8000;
-	cart->cpuRom.writefun = nullWrite;
+void createNRom(nesCart* cart, const uint8_t* romData, const nesFileHeader* hData) {
+	cart->prgRom.data = romData;
+	cart->prgRom.length = 0x8000;
+	cart->prgRom.start = 0x8000;
+	cart->prgRom.writefun = nullWrite;
 
-	cart->ppuRom.data = romData + ROM_PAGE_SIZE * hData->nRomBanks;
-	cart->ppuRom.length = 0x2000;
-	cart->ppuRom.start = 0;
-	cart->ppuRom.readfun = mirroredVRomReader;
-	cart->ppuRom.writefun = nullWrite;
+	cart->chrRom.data = romData + ROM_PAGE_SIZE * hData->nRomBanks;
+	cart->chrRom.length = 0x2000;
+	cart->chrRom.start = 0;
+	cart->chrRom.readfun = mirroredVRomReader;
+	cart->chrRom.writefun = nullWrite;
 
 	if (hData->nRomBanks == 2) { // 2 banks - full 32K ROM
-		cart->cpuRom.readfun = basicReader;
+		cart->prgRom.readfun = basicReader;
 	}
 	else { // 1 bank - mirrored 16K ROM
-		cart->cpuRom.readfun = basicMirroredReader;
+		cart->prgRom.readfun = basicMirroredReader;
 	}
-	printf("CREATED CARTRIDGE: mapper type=%i, CPU banks=%i", hData->mapperID, hData->nRomBanks);
-	printf(", PRG ROM=%i*16K, CHR ROM=%i*8K\n", hData->nRomBanks, hData->nVRomBanks);
+}
+
+void createMMC3(nesCart* cart, const uint8_t* romData, const nesFileHeader* hData) {
+
 }
 
 int createNesCart(nesCart* cart, const char* fileName) {
@@ -122,9 +120,20 @@ int createNesCart(nesCart* cart, const char* fileName) {
 	fread(gameData, sizeof(uint8_t), fileDataSize, file);
 	fclose(file); // close file
 
+	for (int i = 0; i < 16; i++) {
+		cart->prgBanks[i] = gameData + BANK_SIZE * i;
+	}
+
+	for (int j = 0; j < 4; j++) {
+		cart->chrBanks[j] = gameData + ROM_PAGE_SIZE * hData.nRomBanks + BANK_SIZE * j;
+	}
+
 	switch (hData.mapperID) {
 	case 0: // NROM
 		createNRom(cart, gameData, &hData);
+		break;
+	case 4: // MMC3
+		createMMC3(cart, gameData, &hData);
 		break;
 		// TODO: MORE MAPPERS!! :D
 	default:
@@ -132,11 +141,15 @@ int createNesCart(nesCart* cart, const char* fileName) {
 		fputs("ERROR: no matching format for the mapper", stderr);
 		return -1;
 	}
+	printf("CREATED CARTRIDGE: mapper type=%i, CPU banks=%i", hData.mapperID, hData.nRomBanks);
+	printf(", PRG ROM=%i*16K, CHR ROM=%i*8K\n", hData.nRomBanks, hData.nVRomBanks);
 	return 0;
 }
 
 void destroyNesCart(nesCart* cart) {
-	free(cart->cpuRom.data);
+	free(cart->prgRom.data);
 	fputs("DELETED CARTRIDGE", stdout);
 }
+
+
 

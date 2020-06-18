@@ -8,9 +8,13 @@
 #include "emulatorGlue.h"
 
 struct nesCart {
-	device816 cpuRom;
-	device816 ppuRom;
-	uint8_t* buffer;
+	device816 prgRom; // CPU ROM
+	device816 chrRom; // PPU ROM
+
+	uint8_t* prgBanks[16]; // 16 * 1K banks of ROM that CPU can see
+	uint8_t* chrBanks[4]; // 4 * 1K banks of ROM that PPU can see
+
+	void (*destruct)(nesCart* cart);
 };
 
 typedef struct nesCart nesCart;
