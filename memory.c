@@ -10,7 +10,7 @@ uint8_t readMem816(void *mem, uint16_t add) {
 }
 
 void writeRom816(void *mem, uint16_t add, uint8_t val) {
-    //do nothing (READ ONLY)
+    // do nothing (READ ONLY)
 }
 
 void writeRam816(void *mem, uint16_t add, uint8_t val) {

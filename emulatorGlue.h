@@ -12,15 +12,15 @@
 #include <stdint.h>
 
 struct device816 {
-    uint8_t(*readfun)(void*, uint16_t); // data, address
-    void(*writefun)(void*, uint16_t, uint8_t); // data, address, value
-    uint16_t start;
-    uint16_t length;
-    void* data;
+	uint8_t(*readfun)(void*, uint16_t); // data, address
+	void(*writefun)(void*, uint16_t, uint8_t); // data, address, value
+	uint16_t start;
+	uint16_t length;
+	void* data;
 };
 typedef struct device816 device816;
 
-// Macros are defined inside the "base" type classes
+// macros are defined inside the "base" type C files
 
 #define makeDeviceReader(type) uint8_t read_##type(type* base, uint16_t address) {\
     uint8_t val = 0;\
