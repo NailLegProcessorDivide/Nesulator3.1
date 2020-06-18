@@ -27,8 +27,8 @@ makeDeviceAdder(mos6502);
 makeDeviceReader(mos6502);
 makeDeviceWriter(mos6502);
 
-inline void push(mos6502* _cpu, uint8_t value) {
-	write_mos6502(_cpu, 0x100 + (_cpu->SP--), value);
+inline void push(mos6502* _cpu, uint8_t val) {
+	write_mos6502(_cpu, 0x100 + (_cpu->SP--), val);
 }
 
 inline uint8_t pop(mos6502* _cpu) {
@@ -183,28 +183,28 @@ uint16_t imm(mos6502* _cpu) {
 
 uint16_t ind(mos6502* _cpu) {
 	uint16_t address = (read_mos6502(_cpu, _cpu->PC) | (read_mos6502(_cpu, _cpu->PC + 1) << 8));
-	uint16_t v = read_mos6502(_cpu, address) | (read_mos6502(_cpu, (address & 0xFF00) | ((address + 1) & 0x00FF)) << 8);
+	uint16_t val = read_mos6502(_cpu, address) | (read_mos6502(_cpu, (address & 0xFF00) | ((address + 1) & 0x00FF)) << 8);
 	_cpu->PC += 2;
-	return v;
+	return val;
 }
 
 // read(address + value of X)
 uint16_t xind(mos6502* _cpu) {
 	//printPage(_cpu, 0);
 	uint8_t address = (read_mos6502(_cpu, _cpu->PC)) + _cpu->X;
-	uint16_t v = read_mos6502(_cpu, address) | (read_mos6502(_cpu, (uint8_t)(address + 1)) << 8);
+	uint16_t val = read_mos6502(_cpu, address) | (read_mos6502(_cpu, (uint8_t)(address + 1)) << 8);
 	_cpu->PC += 1;
-	return v;
+	return val;
 }
 
 // read(address) + value of Y
 uint16_t indy(mos6502* _cpu) {
 	//printPage(_cpu, 0);
 	uint8_t address = (read_mos6502(_cpu, _cpu->PC));
-	uint16_t v = (read_mos6502(_cpu, address) | (read_mos6502(_cpu, (uint8_t)(address + 1)) << 8)) + _cpu->Y;
-	//printf("indy %04X\n", v);
+	uint16_t val = (read_mos6502(_cpu, address) | (read_mos6502(_cpu, (uint8_t)(address + 1)) << 8)) + _cpu->Y;
+	//printf("indy %04X\n", val);
 	_cpu->PC += 1;
-	return v;
+	return val;
 }
 
 // zeropage
@@ -268,26 +268,26 @@ makeSE(D) // SED - set decimal flag
 
 // ORA - OR memory with accumulator
 #define makeORA(addMode, clockcycles) int ORA_##addMode (mos6502 *_cpu) {\
-    uint8_t v = _cpu->A | read_mos6502(_cpu, addMode(_cpu));\
-    _cpu->A = v;\
-    doNZ(_cpu, v);\
+    uint8_t val = _cpu->A | read_mos6502(_cpu, addMode(_cpu));\
+    _cpu->A = val;\
+    doNZ(_cpu, val);\
     return clockcycles;\
 }
 makeORA(imm, 2)
 makeORA(zpg, 3)
 makeORA(zpgx, 4)
 makeORA(abss, 4)
-makeORA(xind, 6)
-makeORA(indy, 5)
 makeORA(absx, 4)
 makeORA(absy, 4)
+makeORA(xind, 6)
+makeORA(indy, 5)
 
-// ASL - shift left by 1 bit
+// ASL - arithmetic shift memory left by one bit
 #define makeASL(addMode, clockcycles) int ASL_##addMode (mos6502 *_cpu) {\
     uint16_t address = addMode(_cpu);\
-    uint16_t v = read_mos6502(_cpu, address) << 1;\
-    write_mos6502(_cpu, address, (uint8_t) v);\
-    doNZC(_cpu, v);\
+    uint16_t val = read_mos6502(_cpu, address) << 1;\
+    write_mos6502(_cpu, address, (uint8_t) val);\
+    doNZC(_cpu, val);\
     return clockcycles;\
 }
 makeASL(zpg, 5)
@@ -295,20 +295,65 @@ makeASL(zpgx, 6)
 makeASL(abss, 6)
 makeASL(absx, 7)
 
-int ASLA(mos6502* _cpu) { // accumulator only
-	uint16_t v = _cpu->A << 1;
-	_cpu->A = (uint8_t)v;
-	doNZC(_cpu, v);
+int ASLA(mos6502* _cpu) { // for accumulator
+	uint16_t val = _cpu->A << 1;
+	_cpu->A = (uint8_t)val;
+	doNZC(_cpu, val);
 	return 2;
 }
 
+// SLO - shift memory left by one bit, then OR memory with accumulator **UNOFFICIAL
+#define makeSLO(addMode, clockcycles) int SLO_##addMode (mos6502 *_cpu) {\
+	/* do ASL instruction */\
+	{\
+    uint16_t address = addMode(_cpu);\
+    uint16_t val = read_mos6502(_cpu, address) << 1;\
+    write_mos6502(_cpu, address, (uint8_t) val);\
+    doNZC(_cpu, val);\
+	}\
+	/* do ORA instruction */\
+    uint8_t val = _cpu->A | read_mos6502(_cpu, addMode(_cpu));\
+    _cpu->A = val;\
+    doNZ(_cpu, val);\
+	return clockcycles;\
+}
+makeSLO(zpg, 5)
+makeSLO(zpgx, 6)
+makeSLO(abss, 6)
+makeSLO(absx, 7)
+makeSLO(absy, 7)
+makeSLO(xind, 8)
+makeSLO(indy, 8)
+
+// SRE - shift memory right by one bit, then XOR memory with accumulator **UNOFFICIAL
+#define makeSRE(addMode, clockcycles) int SRE_##addMode (mos6502 *_cpu) {\
+	/* do LSR instruction */\
+	uint16_t address = addMode(_cpu);\
+	uint8_t rval = read_mos6502(_cpu, address);\
+    uint8_t wval = rval >> 1;\
+    write_mos6502(_cpu, address, wval);\
+	setFlag(_cpu, FLAG_C, rval & 1);\
+    doNZC(_cpu, wval);\
+	/* do EOR instruction */\
+	_cpu->A ^= read_mos6502(_cpu, addMode(_cpu));\
+    doNZ(_cpu, _cpu->A);\
+	return clockcycles;\
+}
+makeSRE(zpg, 5)
+makeSRE(zpgx, 6)
+makeSRE(abss, 6)
+makeSRE(absx, 7)
+makeSRE(absy, 7)
+makeSRE(xind, 8)
+makeSRE(indy, 8)
+
 // JSR - jump to new location and save return address
 #define makeJSR(addMode, clockcycles) int JSR(mos6502 *_cpu) {\
-    uint16_t v = addMode(_cpu);\
+    uint16_t val = addMode(_cpu);\
     _cpu->PC -= 1;\
     push(_cpu, _cpu->PC >> 8);\
     push(_cpu, _cpu->PC & 0x00FF);\
-    _cpu->PC = v;\
+    _cpu->PC = val;\
     return clockcycles;\
 }
 makeJSR(abss, 6)
@@ -327,9 +372,9 @@ makeBIT(abss, 4)
 
 // AND - AND memory with accumulator  
 #define makeAND(addMode, clockcycles) int AND_##addMode (mos6502 *_cpu) {\
-    uint8_t v = _cpu->A & read_mos6502(_cpu, addMode(_cpu));\
-    _cpu->A = v;\
-    doNZ(_cpu, v);\
+    uint8_t val = _cpu->A & read_mos6502(_cpu, addMode(_cpu));\
+    _cpu->A = val;\
+    doNZ(_cpu, val);\
     return clockcycles;\
 }
 makeAND(imm, 2);
@@ -344,11 +389,11 @@ makeAND(indy, 5);
 // ROL - rotate one bit left
 #define makeROL(addMode, clockcycles) int ROL_##addMode (mos6502 *_cpu) {\
     uint16_t address = addMode(_cpu);\
-    uint8_t v = read_mos6502(_cpu, address);\
-    v = (v << 1) | (v >> 7);\
-    write_mos6502(_cpu, address, v);\
-    doNZ(_cpu, v);\
-    setFlag(_cpu, FLAG_C, v & 1);\
+    uint8_t val = read_mos6502(_cpu, address);\
+    val = (val << 1) | (val >> 7);\
+    write_mos6502(_cpu, address, val);\
+    doNZ(_cpu, val);\
+    setFlag(_cpu, FLAG_C, val & 1);\
     return clockcycles;\
 }
 makeROL(zpg, 5)
@@ -356,12 +401,12 @@ makeROL(zpgx, 6)
 makeROL(abss, 6)
 makeROL(absx, 7)
 
-int ROLA(mos6502* _cpu) { // accumulator only
-	uint8_t v = _cpu->A;
-	v = (v << 1) | (v >> 7);
-	_cpu->A = v;
-	doNZ(_cpu, v);
-	setFlag(_cpu, FLAG_C, v & 1);
+int ROLA(mos6502* _cpu) { // for accumulator
+	uint8_t val = _cpu->A;
+	val = (val << 1) | (val >> 7);
+	_cpu->A = val;
+	doNZ(_cpu, val);
+	setFlag(_cpu, FLAG_C, val & 1);
 	return 2;
 }
 
@@ -373,7 +418,7 @@ int ROLA(mos6502* _cpu) { // accumulator only
 makeJMP(abss, 3)
 makeJMP(ind, 5)
 
-// LSR - left shift one bit right
+// LSR - logical shift one bit right
 #define makeLSR(addMode, clockcycles) int LSR_##addMode (mos6502 *_cpu) {\
     uint16_t address = addMode(_cpu);\
     uint8_t rval = read_mos6502(_cpu, address);\
@@ -388,7 +433,7 @@ makeLSR(zpgx, 4)
 makeLSR(abss, 4)
 makeLSR(absx, 5)
 
-int LSRA(mos6502* _cpu) { // accumulator only
+int LSRA(mos6502* _cpu) { // for accumulator
 	uint8_t rval = _cpu->A;
 	uint8_t wval = rval >> 1;
 	_cpu->A = wval;
@@ -414,12 +459,12 @@ makeEOR(indy, 5)
 
 // ADC - add memory to accumulator with carry
 #define makeADC(addMode, clockcycles) int ADC_##addMode (mos6502 *_cpu) {\
-    uint8_t v = read_mos6502(_cpu, addMode(_cpu));\
-    uint8_t mayover = ~(v ^ _cpu->A);\
-    uint16_t total = v + _cpu->A + (testFlag(_cpu, FLAG_C) ? 1 : 0);\
+    uint8_t val = read_mos6502(_cpu, addMode(_cpu));\
+    uint8_t mayover = ~(val ^ _cpu->A);\
+    uint16_t total = val + _cpu->A + (testFlag(_cpu, FLAG_C) ? 1 : 0);\
     _cpu->A = (uint8_t) total;\
     doNZC(_cpu, total);\
-    setFlag(_cpu, FLAG_V, mayover & (v ^ _cpu->A) & 0x80);\
+    setFlag(_cpu, FLAG_V, mayover & (val ^ _cpu->A) & 0x80);\
     return clockcycles;\
 }
 makeADC(imm, 2)
@@ -433,15 +478,15 @@ makeADC(indy, 5)
 
 // intermediary definition that allows for proper carrying when adding values to registers
 #define SUBmac(reg, addMode, clockcycles, carry) uint8_t vv = read_mos6502(_cpu, addMode(_cpu));\
-    uint16_t v = _cpu->reg + (uint8_t)(~vv) + carry;\
-    /*printf("sub %hhi, %hhi, %hhi\n", _cpu->reg, vv, (int8_t)v);*/\
-    doNZC(_cpu, v);
+    uint16_t val = _cpu->reg + (uint8_t)(~vv) + carry;\
+    /*printf("sub %hhi, %hhi, %hhi\n", _cpu->reg, vv, (int8_t)val);*/\
+    doNZC(_cpu, val);
 
 // SBC - subtract memory from accumulator with borrow
 #define makeSBC(addMode, clockcycles) int SBC_##addMode(mos6502 *_cpu) {\
     SUBmac(A, addMode, clockcycles, (testFlag(_cpu, FLAG_C) ? 1 : 0));\
-    setFlag(_cpu, FLAG_V, (((vv&0x80))? (int8_t)v < (int8_t)_cpu->A : (int8_t)v > (int8_t)_cpu->A));\
-    _cpu->A = (uint8_t) v;\
+    setFlag(_cpu, FLAG_V, (((vv&0x80))? (int8_t)val < (int8_t)_cpu->A : (int8_t)val > (int8_t)_cpu->A));\
+    _cpu->A = (uint8_t) val;\
     return clockcycles;\
 }
 makeSBC(imm, 2)
@@ -480,15 +525,15 @@ makeCP_(Y, imm, 2)
 makeCP_(Y, zpg, 3)
 makeCP_(Y, abss, 4)
 
-#define doROR() uint8_t carry = v&1;\
-    uint8_t newV = ((_cpu->flags & FLAG_C) << 7) | (v >> 1);\
+#define doROR() uint8_t carry = val & 1;\
+    uint8_t newV = ((_cpu->flags & FLAG_C) << 7) | (val >> 1);\
     doNZ(_cpu, newV);\
-    setFlag(_cpu, FLAG_C, v & 1);\
+    setFlag(_cpu, FLAG_C, val & 1);\
 
 // ROR - rotate one bit right
 #define makeROR(addMode, clockcycles) int ROR_##addMode (mos6502 *_cpu) {\
     uint16_t address = addMode(_cpu);\
-    uint8_t v = read_mos6502(_cpu, address);\
+    uint8_t val = read_mos6502(_cpu, address);\
     doROR()\
     write_mos6502(_cpu, address, newV);\
     return clockcycles;\
@@ -498,8 +543,8 @@ makeROR(zpgx, 6)
 makeROR(abss, 6)
 makeROR(absx, 7)
 
-int RORA(mos6502* _cpu) { // accumulator only
-	uint8_t v = _cpu->A;
+int RORA(mos6502* _cpu) { // for accumulator
+	uint8_t val = _cpu->A;
 	doROR()
 	_cpu->A = newV;
 	return 2;
@@ -509,10 +554,18 @@ int RORA(mos6502* _cpu) { // accumulator only
     write_mos6502(_cpu, addMode(_cpu), _cpu->reg);\
     return clockcycles;\
 }
+
 #define makeST2(reg, reg2, addMode, clockcycles) int S##reg##reg2##_##addMode (mos6502 *_cpu) {\
     write_mos6502(_cpu, addMode(_cpu), _cpu->reg & _cpu->reg2);\
     return clockcycles;\
 }
+
+#define makeST3(reg, addMode) int S##reg##A_##addMode (mos6502 *_cpu) {\
+    uint16_t address = addMode(_cpu);\
+	write_mos6502(_cpu, address, _cpu->reg & (address >> 8) + 1);\
+	return 5;\
+}
+
 // STA - store accumulator in memory
 makeST(A, zpg, 3)
 makeST(A, zpgx, 4)
@@ -529,11 +582,14 @@ makeST(X, abss, 4)
 makeST(Y, zpg, 3)
 makeST(Y, zpgx, 4)
 makeST(Y, abss, 4)
-// SAX - store index X AND accumulator in memory
+// SAX - AND index X with accumulator and store in memory **UNOFFICIAL
 makeST2(A, X, zpg, 3)
 makeST2(A, X, xind, 3)
 makeST2(A, X, abss, 3)
 makeST2(A, X, zpgy, 3)
+// S[reg]A - AND index reg with high byte of target address of argument + 1, store result in memory **UNOFFICIAL
+makeST3(X, absy) // SXA
+makeST3(Y, absx) // SYA
 
 #define makeT(r1, r2) int T##r1##r2(mos6502 *_cpu) {\
     _cpu->r2 = _cpu->r1;\
@@ -584,7 +640,7 @@ makeLD(Y, zpg, 3)
 makeLD(Y, zpgx, 4)
 makeLD(Y, abss, 4)
 makeLD(Y, absx, 4)
-// LAX - load accumulator and index X with the same memory
+// LAX - load accumulator and index X with the same memory **UNOFFICIAL
 makeLD2(A, X, xind, 6);
 makeLD2(A, X, zpg, 3);
 makeLD2(A, X, abss, 4);
@@ -616,10 +672,10 @@ makeB_S(N, 2) // BMI - branch on result negative
 #define makeINC(addMode, clockcycles) int INC_##addMode(mos6502 *_cpu) {\
     /*printPage(_cpu, 0);*/\
     uint16_t address = addMode(_cpu);\
-    uint8_t v = read_mos6502(_cpu, address) + 1;\
-    doNZ(_cpu, v);\
-    /*printf("inc %04x %i\n", address, v);*/\
-    write_mos6502(_cpu, address, v);\
+    uint8_t val = read_mos6502(_cpu, address) + 1;\
+    doNZ(_cpu, val);\
+    /*printf("inc %04x %i\n", address, val);*/\
+    write_mos6502(_cpu, address, val);\
     return clockcycles;\
 }
 makeINC(zpg, 5)
@@ -655,6 +711,22 @@ makeDEC(absx, 7)
 }
 makeDE_(X) // DEX - decrement index X by one
 makeDE_(Y) // DEY - decrement index Y by one
+
+// DCP - subtract 1 from memory (without borrow)
+#define makeDCP(addMode, clockcycles) int DCP_##addMode(mos6502 *_cpu) {\
+	uint16_t address = addMode(_cpu);\
+	uint8_t val = read_mos6502(_cpu, address) - 1;\
+	write_mos6502(_cpu, address, val);\
+	doNZC(_cpu, _cpu->A);\
+	return clockcycles;\
+}
+makeDCP(zpg, 5);
+makeDCP(zpgx, 6);
+makeDCP(abss, 6);
+makeDCP(absx, 7);
+makeDCP(absy, 7);
+makeDCP(xind, 8);
+makeDCP(indy, 8);
 
 // PLA - pull accumulator from stack
 int PLA(mos6502* _cpu) {
@@ -702,42 +774,45 @@ int ERR(mos6502* _cpu) {
 	return 10000000;
 }
 
-#define makeNOP(addMode)int NOP_##addMode(mos6502 *_cpu) {\
+#define makeNOP(addMode, clockcycles)int NOP_##addMode(mos6502 *_cpu) {\
     addMode(_cpu);\
-    return 2;\
+    return clockcycles;\
 }
 
-// NOP - no operation
+// NOP - single no operation
 int NOP(mos6502* _cpu) {
 	return 2;
 }
-makeNOP(zpg)
-makeNOP(zpgx)
-makeNOP(abss)
-makeNOP(absx)
-makeNOP(imm)
+// DOP - double NOP
+makeNOP(imm, 2)
+makeNOP(zpg, 3)
+makeNOP(zpgx, 4)
+// TOP - triple NOP
+makeNOP(abss, 4)
+makeNOP(absx, 4)
+
 
 static const mos6502instruction cpuopmap[256] = {
-    //00   , 01      , 02     , 03      , 04      , 05      , 06      , 07      , 08 , 09      , 0A  , 0B     , 0C      , 0D      , 0E      , 0F
-    BRK    , ORA_xind, ERR    , ERR     , NOP_zpg , ORA_zpg , ASL_zpg , ERR     , PHP, ORA_imm , ASLA, ERR    , NOP_abss, ORA_abss, ASL_abss, ERR     ,//00
-    BNC    , ORA_indy, ERR    , ERR     , NOP_zpgx, ORA_zpgx, ASL_zpgx, ERR     , CLC, ORA_absy, NOP , ERR    , NOP_absx, ORA_absx, ASL_absx, ERR     ,//10
-    JSR    , AND_xind, ERR    , ERR     , BIT_zpg , AND_zpg , ROL_zpg , ERR     , PLP, AND_imm , ROLA, ERR    , BIT_abss, AND_abss, ROL_abss, ERR     ,//20
-    BNS    , AND_indy, ERR    , ERR     , NOP_zpgx, AND_zpgx, ROL_zpgx, ERR     , SEC, AND_absy, NOP , ERR    , NOP_absx, AND_absx, ROL_absx, ERR     ,//30
-    RTI    , EOR_xind, ERR    , ERR     , NOP_zpg , EOR_zpg , LSR_zpg , ERR     , PHA, EOR_imm , LSRA, ERR    , JMP_abss, EOR_abss, LSR_abss, ERR     ,//40
-    BVC    , EOR_indy, ERR    , ERR     , NOP_zpgx, EOR_zpgx, LSR_zpgx, ERR     , CLI, EOR_absy, NOP , ERR    , NOP_absx, EOR_absx, LSR_absx, ERR     ,//50
-    RTS    , ADC_xind, ERR    , ERR     , NOP_zpg , ADC_zpg , ROR_zpg , ERR     , PLA, ADC_imm , RORA, ERR    , JMP_ind , ADC_abss, ROR_abss, ERR     ,//60
-    BVS    , ADC_indy, ERR    , ERR     , NOP_zpgx, ADC_zpgx, ROR_zpgx, ERR     , SEI, ADC_absy, NOP , ERR    , NOP_absx, ADC_absx, ROR_absx, ERR     ,//70
-    NOP_imm, STA_xind, ERR    , SAX_xind, STY_zpg , STA_zpg , STX_zpg , SAX_zpg , DEY, ERR     , TXA , ERR    , STY_abss, STA_abss, STX_abss, SAX_abss,//80
-    BCC    , STA_indy, ERR    , ERR     , STY_zpgx, STA_zpgx, STX_zpgy, SAX_zpgy, TYA, STA_absy, TXS , ERR    , ERR     , STA_absx, ERR     , ERR     ,//90
-    LDY_imm, LDA_xind, LDX_imm, LAX_xind, LDY_zpg , LDA_zpg , LDX_zpg , LAX_zpg , TAY, LDA_imm , TAX , ERR    , LDY_abss, LDA_abss, LDX_abss, LAX_abss,//A0
-    BCS    , LDA_indy, ERR    , LAX_indy, LDY_zpgx, LDA_zpgx, LDX_zpgy, LAX_zpgy, CLV, LDA_absy, TSPX, ERR    , LDY_absx, LDA_absx, LDX_absy, LAX_absy,//B0
-    CPY_imm, CMP_xind, ERR    , ERR     , CPY_zpg , CMP_zpg , DEC_zpg , ERR     , INY, CMP_imm , DEX , ERR    , CPY_abss, CMP_abss, DEC_abss, ERR     ,//C0
-    BZC    , CMP_indy, ERR    , ERR     , NOP_zpgx, CMP_zpgx, DEC_zpgx, ERR     , CLD, CMP_absy, NOP , ERR    , NOP_absx, CMP_absx, DEC_absx, ERR     ,//D0
-    CPX_imm, SBC_xind, ERR    , ERR     , CPX_zpg , SBC_zpg , INC_zpg , ERR     , INX, SBC_imm , NOP , SBC_imm, CPX_abss, SBC_abss, INC_abss, ERR     ,//E0
-    BZS    , SBC_indy, ERR    , ERR     , NOP_zpgx, SBC_zpgx, INC_zpgx, ERR     , SED, SBC_absy, NOP , ERR    , NOP_absx, SBC_absx, INC_absx, ERR     ,//F0
+    //00   , 01      , 02      , 03      , 04      , 05      , 06      , 07      , 08 , 09      , 0A  , 0B      , 0C      , 0D      , 0E      , 0F
+    BRK    , ORA_xind, ERR     , SLO_xind, NOP_zpg , ORA_zpg , ASL_zpg , SLO_zpg , PHP, ORA_imm , ASLA, ERR     , NOP_abss, ORA_abss, ASL_abss, SLO_abss,//00
+    BNC    , ORA_indy, ERR     , SLO_indy, NOP_zpgx, ORA_zpgx, ASL_zpgx, SLO_zpgx, CLC, ORA_absy, NOP , SLO_absy, NOP_absx, ORA_absx, ASL_absx, SLO_absx,//10
+    JSR    , AND_xind, ERR     , ERR     , BIT_zpg , AND_zpg , ROL_zpg , ERR     , PLP, AND_imm , ROLA, ERR     , BIT_abss, AND_abss, ROL_abss, ERR     ,//20
+    BNS    , AND_indy, ERR     , ERR     , NOP_zpgx, AND_zpgx, ROL_zpgx, ERR     , SEC, AND_absy, NOP , ERR     , NOP_absx, AND_absx, ROL_absx, ERR     ,//30
+    RTI    , EOR_xind, ERR     , SRE_xind, NOP_zpg , EOR_zpg , LSR_zpg , SRE_zpg , PHA, EOR_imm , LSRA, ERR     , JMP_abss, EOR_abss, LSR_abss, SRE_abss,//40
+    BVC    , EOR_indy, ERR     , SRE_indy, NOP_zpgx, EOR_zpgx, LSR_zpgx, SRE_zpgx, CLI, EOR_absy, NOP , SRE_absy, NOP_absx, EOR_absx, LSR_absx, SRE_absx,//50
+    RTS    , ADC_xind, ERR     , ERR     , NOP_zpg , ADC_zpg , ROR_zpg , ERR     , PLA, ADC_imm , RORA, ERR     , JMP_ind , ADC_abss, ROR_abss, ERR     ,//60
+    BVS    , ADC_indy, ERR     , ERR     , NOP_zpgx, ADC_zpgx, ROR_zpgx, ERR     , SEI, ADC_absy, NOP , ERR     , NOP_absx, ADC_absx, ROR_absx, ERR     ,//70
+    NOP_imm, STA_xind, ERR     , SAX_xind, STY_zpg , STA_zpg , STX_zpg , SAX_zpg , DEY, ERR     , TXA , ERR     , STY_abss, STA_abss, STX_abss, SAX_abss,//80
+    BCC    , STA_indy, ERR     , ERR     , STY_zpgx, STA_zpgx, STX_zpgy, SAX_zpgy, TYA, STA_absy, TXS , ERR     , SYA_absx, STA_absx, SXA_absy, ERR     ,//90
+    LDY_imm, LDA_xind, LDX_imm , LAX_xind, LDY_zpg , LDA_zpg , LDX_zpg , LAX_zpg , TAY, LDA_imm , TAX , ERR     , LDY_abss, LDA_abss, LDX_abss, LAX_abss,//A0
+    BCS    , LDA_indy, ERR     , LAX_indy, LDY_zpgx, LDA_zpgx, LDX_zpgy, LAX_zpgy, CLV, LDA_absy, TSPX, ERR     , LDY_absx, LDA_absx, LDX_absy, LAX_absy,//B0
+    CPY_imm, CMP_xind, ERR     , DCP_xind, CPY_zpg , CMP_zpg , DEC_zpg , DCP_zpg , INY, CMP_imm , DEX , ERR     , CPY_abss, CMP_abss, DEC_abss, DCP_abss,//C0
+    BZC    , CMP_indy, ERR     , DCP_indy, NOP_zpgx, CMP_zpgx, DEC_zpgx, DCP_zpgx, CLD, CMP_absy, NOP , DCP_absy, NOP_absx, CMP_absx, DEC_absx, DCP_absx,//D0
+    CPX_imm, SBC_xind, ERR     , ERR     , CPX_zpg , SBC_zpg , INC_zpg , ERR     , INX, SBC_imm , NOP , SBC_imm , CPX_abss, SBC_abss, INC_abss, ERR     ,//E0
+    BZS    , SBC_indy, ERR     , ERR     , NOP_zpgx, SBC_zpgx, INC_zpgx, ERR     , SED, SBC_absy, NOP , ERR     , NOP_absx, SBC_absx, INC_absx, ERR     ,//F0
 };
 
-const char* instructions[256] = { "BRK","ORA_xind","ERR","ERR","ERR","ORA_zpg","ASL_zpg","ERR","PHP","ORA_imm","ASLA","ERR","ERR","ORA_abss","ASL_abss","ERR","BNC","ORA_indy","ERR","ERR","ERR","ORA_zpgx","ASL_zpgx","ERR","CLC","ORA_absy","ERR","ERR","ERR","ORA_absx","ASL_absx","ERR","JSR","AND_xind","ERR","ERR","BIT_zpg","AND_zpg","ROL_zpg","ERR","PLP","AND_imm","ROLA","ERR","BIT_abss","AND_abss","ROL_abss","ERR","BNS","AND_indy","ERR","ERR","ERR","AND_zpgx","ROL_zpgx","ERR","SEC","AND_absy","ERR","ERR","ERR","AND_absx","ROL_absx","ERR","RTI","EOR_xind","ERR","ERR","ERR","EOR_zpg","LSR_zpg","ERR","PHA","EOR_imm","LSRA","ERR","JMP_abss","EOR_abss","LSR_abss","ERR","BVC","EOR_indy","ERR","ERR","ERR","EOR_zpgx","LSR_zpgx","ERR","CLI","EOR_absy","ERR","ERR","ERR","EOR_absx","LSR_absx","ERR","RTS","ADC_xind","ERR","ERR","ERR","ADC_zpg","ROR_zpg","ERR","PLA","ADC_imm","RORA","ERR","JMP_ind","ADC_abss","ROR_abss","ERR","BVS","ADC_indy","ERR","ERR","ERR","ADC_zpgx","ROR_zpgx","ERR","SEI","ADC_absy","ERR","ERR","ERR","ADC_absx","ROR_absx","ERR","ERR","STA_xind","ERR","ERR","STY_zpg","STA_zpg","STX_zpg","ERR","DEY","ERR","TXA","ERR","STY_abss","STA_abss","STX_abss","ERR","BCC","STA_indy","ERR","ERR","STY_zpgx","STA_zpgx","STX_zpgy","ERR","TYA","STA_absy","TXS","ERR","ERR","STA_absx","ERR","ERR","LDY_imm","LDA_xind","LDX_imm","ERR","LDY_zpg","LDA_zpg","LDX_zpg","ERR","TAY","LDA_imm","TAX","ERR","LDY_abss","LDA_abss","LDX_abss","ERR","BCS","LDA_indy","ERR","ERR","LDY_zpgx","LDA_zpgx","LDX_zpgy","ERR","CLV","LDA_absy","TSPX","ERR","LDY_absx","LDA_absx","LDX_absy","ERR","CPY_imm","CMP_xind","ERR","ERR","CPY_zpg","CMP_zpg","DEC_zpg","ERR","INY","CMP_imm","DEX","ERR","CPY_abss","CMP_abss","DEC_abss","ERR","BZC","CMP_indy","ERR","ERR","ERR","CMP_zpgx","DEC_zpgx","ERR","CLD","CMP_absy","ERR","ERR","ERR","CMP_absx","DEC_absx","ERR","CPX_imm","SBC_xind","ERR","ERR","CPX_zpg","SBC_zpg","INC_zpg","ERR","INX","SBC_imm","NOP","ERR","CPX_abss","SBC_abss","INC_abss","ERR","BZS","SBC_indy","ERR","ERR","ERR","SBC_zpgx","INC_zpgx","ERR","SED","SBC_absy","ERR","ERR","ERR","SBC_absx","INC_absx","ERR" };
+const char* instructions[256] = { "BRK","ORA_xind","ERR","SLO_xind","NOP_zpg","ORA_zpg","ASL_zpg","SLO_zpg","PHP","ORA_imm","ASLA","ERR","NOP_abss","ORA_abss","ASL_abss","SLO_abss","BNC","ORA_indy","ERR","SLO_indy","NOP_zpgx","ORA_zpgx","ASL_zpgx","SLO_zpgx","CLC","ORA_absy","NOP","SLO_absy","NOP_absx","ORA_absx","ASL_absx","SLO_absx","JSR","AND_xind","ERR","ERR","BIT_zpg","AND_zpg","ROL_zpg","ERR","PLP","AND_imm","ROLA","ERR","BIT_abss","AND_abss","ROL_abss","ERR","BNS","AND_indy","ERR","ERR","NOP_zpgx","AND_zpgx","ROL_zpgx","ERR","SEC","AND_absy","NOP","ERR","NOP_absx","AND_absx","ROL_absx","ERR","RTI","EOR_xind","ERR","SRE_xind","NOP_zpg","EOR_zpg","LSR_zpg","SRE_zpg","PHA","EOR_imm","LSRA","ERR","JMP_abss","EOR_abss","LSR_abss","SRE_abss","BVC","EOR_indy","ERR","SRE_indy","NOP_zpgx","EOR_zpgx","LSR_zpgx","SRE_zpgx","CLI","EOR_absy","NOP","SRE_absy","NOP_absx","EOR_absx","LSR_absx","SRE_absx","RTS","ADC_xind","ERR","ERR","NOP_zpg","ADC_zpg","ROR_zpg","ERR","PLA","ADC_imm","RORA","ERR","JMP_ind","ADC_abss","ROR_abss","ERR","BVS","ADC_indy","ERR","ERR","NOP_zpgx","ADC_zpgx","ROR_zpgx","ERR","SEI","ADC_absy","NOP","ERR","NOP_absx","ADC_absx","ROR_absx","ERR","NOP_imm","STA_xind","ERR","SAX_xind","STY_zpg","STA_zpg","STX_zpg","SAX_zpg","DEY","ERR","TXA","ERR","STY_abss","STA_abss","STX_abss","SAX_abss","BCC","STA_indy","ERR","ERR","STY_zpgx","STA_zpgx","STX_zpgy","SAX_zpgy","TYA","STA_absy","TXS","ERR","SYA_absx","STA_absx","SXA_absy","ERR","LDY_imm","LDA_xind","LDX_imm","LAX_xind","LDY_zpg","LDA_zpg","LDX_zpg","LAX_zpg","TAY","LDA_imm","TAX","ERR","LDY_abss","LDA_abss","LDX_abss","LAX_abss","BCS","LDA_indy","ERR","LAX_indy","LDY_zpgx","LDA_zpgx","LDX_zpgy","LAX_zpgy","CLV","LDA_absy","TSPX","ERR","LDY_absx","LDA_absx","LDX_absy","LAX_absy","CPY_imm","CMP_xind","ERR","DCP_xind","CPY_zpg","CMP_zpg","DEC_zpg","DCP_zpg","INY","CMP_imm","DEX","ERR","CPY_abss","CMP_abss","DEC_abss","DCP_abss","BZC","CMP_indy","ERR","DCP_indy","NOP_zpgx","CMP_zpgx","DEC_zpgx","DCP_zpgx","CLD","CMP_absy","NOP","DCP_absy","NOP_absx","CMP_absx","DEC_absx","DCP_absx","CPX_imm","SBC_xind","ERR","ERR","CPX_zpg","SBC_zpg","INC_zpg","ERR","INX","SBC_imm","NOP","SBC_imm","CPX_abss","SBC_abss","INC_abss","ERR","BZS","SBC_indy","ERR","ERR","NOP_zpgx","SBC_zpgx","INC_zpgx","ERR","SED","SBC_absy","NOP","ERR","NOP_absx","SBC_absx","INC_absx","ERR" };
 
 #define BYTE_TO_FLAGS(byte)  \
   (byte & 0x80 ? 'N' : '-'), \
@@ -791,6 +866,8 @@ int stepCpu(mos6502* _cpu) {
 		if (sp_expected[counter] != _cpu->SP) {
 			printf(" !!SP!! ");
 		}
+
+		__debugbreak();
 	}
 	else {
 		printf("| %i) CORRECT ==>\t 0x%04X 0x%02X (%-9s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
