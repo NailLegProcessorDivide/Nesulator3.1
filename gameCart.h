@@ -7,10 +7,10 @@
 
 #include "emulatorGlue.h"
 
-struct nesCart{
-    device816 cpuRom;
-    device816 ppuRom;
-    uint8_t* buffer;
+struct nesCart {
+	device816 cpuRom;
+	device816 ppuRom;
+	uint8_t* buffer;
 };
 
 typedef struct nesCart nesCart;

@@ -16,7 +16,7 @@ makeWrite(ppu);
 
 uint8_t read(void *myppu, uint16_t address) {
     ppu *_ppu = (ppu *) myppu;
-    address &= 0x0007; // Get the last 3 bits of the address to determine the register (registers are mirrored)
+    address &= 0x0007; // get the last 3 bits of the address to determine the register (registers are mirrored)
     switch (address) {
         case 2: // PPUSTATUS
             _ppu->scrollWriteNo = 0; // reset address latch for PPUSCROLL## and PPUADDR
