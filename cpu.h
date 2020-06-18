@@ -6,6 +6,7 @@
 #define NESULATOR_CPU_H
 
 #include <stdint.h>
+#include <stdlib.h>
 #include "emulatorGlue.h"
 
 struct mos6502 {
