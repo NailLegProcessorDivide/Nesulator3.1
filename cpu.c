@@ -478,6 +478,10 @@ int RORA(mos6502 *_cpu) {
     write_mos6502(_cpu, addMode(_cpu), _cpu->reg);\
     return clockcycles;\
 }
+#define makeST2(reg, reg2, addMode, clockcycles) int S##reg##reg2##_##addMode (mos6502 *_cpu) {\
+    write_mos6502(_cpu, addMode(_cpu), _cpu->reg & _cpu->reg2);\
+    return clockcycles;\
+}
 makeST(A, zpg, 3)
 makeST(A, zpgx, 4)
 makeST(A, abss, 4)
@@ -493,6 +497,11 @@ makeST(X, abss, 4)
 makeST(Y, zpg, 3)
 makeST(Y, zpgx, 4)
 makeST(Y, abss, 4)
+
+makeST2(A, X, zpg, 3)
+makeST2(A, X, xind, 3)
+makeST2(A, X, abss, 3)
+makeST2(A, X, zpgy, 3)
 
 #define makeT(r1, r2) int T##r1##r2(mos6502 *_cpu) {\
     _cpu->r2 = _cpu->r1;\
@@ -512,6 +521,12 @@ int TXS(mos6502 *_cpu) {
 
 #define makeLD(reg, addMode, clockcycles) int LD##reg##_##addMode(mos6502 *_cpu) {\
     _cpu->reg = read_mos6502(_cpu, addMode(_cpu));\
+    donz(_cpu, _cpu->reg);\
+    return clockcycles;\
+}
+#define makeLD2(reg, reg2, addMode, clockcycles) int L##reg##reg2##_##addMode(mos6502 *_cpu) {\
+    _cpu->reg = read_mos6502(_cpu, addMode(_cpu));\
+    _cpu->reg2 = _cpu->reg;\
     donz(_cpu, _cpu->reg);\
     return clockcycles;\
 }
@@ -535,6 +550,13 @@ makeLD(Y, zpg, 3)
 makeLD(Y, zpgx, 4)
 makeLD(Y, abss, 4)
 makeLD(Y, absx, 4)
+
+makeLD2(A,X, xind, 6);
+makeLD2(A,X, zpg, 3);
+makeLD2(A,X, abss, 4);
+makeLD2(A,X, indy, 4);
+makeLD2(A,X, zpgy, 4);
+makeLD2(A,X, absy, 4);
 
 #define makeB_C(flag, clockcycles) int B##flag##C (mos6502 *_cpu) {\
     uint16_t add = rel(_cpu);\
@@ -651,23 +673,23 @@ makeNOP(absx)
 makeNOP(imm)
 
 static const mos6502instruction cpuopmap[256] = {
-    //00   , 01      , 02     , 03 , 04      , 05      , 06      , 07 , 08 , 09      , 0A  , 0B , 0C      , 0D      , 0E      , 0F
-    BRK    , ORA_xind, ERR    , ERR, NOP_zpg , ORA_zpg , ASL_zpg , ERR, PHP, ORA_imm , ASLA, ERR, NOP_abss, ORA_abss, ASL_abss, ERR,//00
-    BNC    , ORA_indy, ERR    , ERR, NOP_zpgx, ORA_zpgx, ASL_zpgx, ERR, CLC, ORA_absy, NOP , ERR, NOP_absx, ORA_absx, ASL_absx, ERR,//10
-    JSR    , AND_xind, ERR    , ERR, BIT_zpg , AND_zpg , ROL_zpg , ERR, PLP, AND_imm , ROLA, ERR, BIT_abss, AND_abss, ROL_abss, ERR,//20
-    BNS    , AND_indy, ERR    , ERR, NOP_zpgx, AND_zpgx, ROL_zpgx, ERR, SEC, AND_absy, NOP , ERR, NOP_absx, AND_absx, ROL_absx, ERR,//30
-    RTI    , EOR_xind, ERR    , ERR, NOP_zpg , EOR_zpg , LSR_zpg , ERR, PHA, EOR_imm , LSRA, ERR, JMP_abss, EOR_abss, LSR_abss, ERR,//40
-    BVC    , EOR_indy, ERR    , ERR, NOP_zpgx, EOR_zpgx, LSR_zpgx, ERR, CLI, EOR_absy, NOP , ERR, NOP_absx, EOR_absx, LSR_absx, ERR,//50
-    RTS    , ADC_xind, ERR    , ERR, NOP_zpg , ADC_zpg , ROR_zpg , ERR, PLA, ADC_imm , RORA, ERR, JMP_ind , ADC_abss, ROR_abss, ERR,//60
-    BVS    , ADC_indy, ERR    , ERR, NOP_zpgx, ADC_zpgx, ROR_zpgx, ERR, SEI, ADC_absy, NOP , ERR, NOP_absx, ADC_absx, ROR_absx, ERR,//70
-    NOP_imm, STA_xind, ERR    , ERR, STY_zpg , STA_zpg , STX_zpg , ERR, DEY, ERR     , TXA , ERR, STY_abss, STA_abss, STX_abss, ERR,//80
-    BCC    , STA_indy, ERR    , ERR, STY_zpgx, STA_zpgx, STX_zpgy, ERR, TYA, STA_absy, TXS , ERR, ERR     , STA_absx, ERR     , ERR,//90
-    LDY_imm, LDA_xind, LDX_imm, ERR, LDY_zpg , LDA_zpg , LDX_zpg , ERR, TAY, LDA_imm , TAX , ERR, LDY_abss, LDA_abss, LDX_abss, ERR,//A0
-    BCS    , LDA_indy, ERR    , ERR, LDY_zpgx, LDA_zpgx, LDX_zpgy, ERR, CLV, LDA_absy, TSPX, ERR, LDY_absx, LDA_absx, LDX_absy, ERR,//B0
-    CPY_imm, CMP_xind, ERR    , ERR, CPY_zpg , CMP_zpg , DEC_zpg , ERR, INY, CMP_imm , DEX , ERR, CPY_abss, CMP_abss, DEC_abss, ERR,//C0
-    BZC    , CMP_indy, ERR    , ERR, NOP_zpgx, CMP_zpgx, DEC_zpgx, ERR, CLD, CMP_absy, NOP , ERR, NOP_absx, CMP_absx, DEC_absx, ERR,//D0
-    CPX_imm, SBC_xind, ERR    , ERR, CPX_zpg , SBC_zpg , INC_zpg , ERR, INX, SBC_imm , NOP , ERR, CPX_abss, SBC_abss, INC_abss, ERR,//E0
-    BZS    , SBC_indy, ERR    , ERR, NOP_zpgx, SBC_zpgx, INC_zpgx, ERR, SED, SBC_absy, NOP , ERR, NOP_absx, SBC_absx, INC_absx, ERR,//F0
+    //00   , 01      , 02     , 03      , 04      , 05      , 06      , 07      , 08 , 09      , 0A  , 0B     , 0C      , 0D      , 0E      , 0F
+    BRK    , ORA_xind, ERR    , ERR     , NOP_zpg , ORA_zpg , ASL_zpg , ERR     , PHP, ORA_imm , ASLA, ERR    , NOP_abss, ORA_abss, ASL_abss, ERR     ,//00
+    BNC    , ORA_indy, ERR    , ERR     , NOP_zpgx, ORA_zpgx, ASL_zpgx, ERR     , CLC, ORA_absy, NOP , ERR    , NOP_absx, ORA_absx, ASL_absx, ERR     ,//10
+    JSR    , AND_xind, ERR    , ERR     , BIT_zpg , AND_zpg , ROL_zpg , ERR     , PLP, AND_imm , ROLA, ERR    , BIT_abss, AND_abss, ROL_abss, ERR     ,//20
+    BNS    , AND_indy, ERR    , ERR     , NOP_zpgx, AND_zpgx, ROL_zpgx, ERR     , SEC, AND_absy, NOP , ERR    , NOP_absx, AND_absx, ROL_absx, ERR     ,//30
+    RTI    , EOR_xind, ERR    , ERR     , NOP_zpg , EOR_zpg , LSR_zpg , ERR     , PHA, EOR_imm , LSRA, ERR    , JMP_abss, EOR_abss, LSR_abss, ERR     ,//40
+    BVC    , EOR_indy, ERR    , ERR     , NOP_zpgx, EOR_zpgx, LSR_zpgx, ERR     , CLI, EOR_absy, NOP , ERR    , NOP_absx, EOR_absx, LSR_absx, ERR     ,//50
+    RTS    , ADC_xind, ERR    , ERR     , NOP_zpg , ADC_zpg , ROR_zpg , ERR     , PLA, ADC_imm , RORA, ERR    , JMP_ind , ADC_abss, ROR_abss, ERR     ,//60
+    BVS    , ADC_indy, ERR    , ERR     , NOP_zpgx, ADC_zpgx, ROR_zpgx, ERR     , SEI, ADC_absy, NOP , ERR    , NOP_absx, ADC_absx, ROR_absx, ERR     ,//70
+    NOP_imm, STA_xind, ERR    , SAX_xind, STY_zpg , STA_zpg , STX_zpg , SAX_zpg , DEY, ERR     , TXA , ERR    , STY_abss, STA_abss, STX_abss, SAX_abss,//80
+    BCC    , STA_indy, ERR    , ERR     , STY_zpgx, STA_zpgx, STX_zpgy, SAX_zpgy, TYA, STA_absy, TXS , ERR    , ERR     , STA_absx, ERR     , ERR     ,//90
+    LDY_imm, LDA_xind, LDX_imm, LAX_xind, LDY_zpg , LDA_zpg , LDX_zpg , LAX_zpg , TAY, LDA_imm , TAX , ERR    , LDY_abss, LDA_abss, LDX_abss, LAX_abss,//A0
+    BCS    , LDA_indy, ERR    , LAX_indy, LDY_zpgx, LDA_zpgx, LDX_zpgy, LAX_zpgy, CLV, LDA_absy, TSPX, ERR    , LDY_absx, LDA_absx, LDX_absy, LAX_absy,//B0
+    CPY_imm, CMP_xind, ERR    , ERR     , CPY_zpg , CMP_zpg , DEC_zpg , ERR     , INY, CMP_imm , DEX , ERR    , CPY_abss, CMP_abss, DEC_abss, ERR     ,//C0
+    BZC    , CMP_indy, ERR    , ERR     , NOP_zpgx, CMP_zpgx, DEC_zpgx, ERR     , CLD, CMP_absy, NOP , ERR    , NOP_absx, CMP_absx, DEC_absx, ERR     ,//D0
+    CPX_imm, SBC_xind, ERR    , ERR     , CPX_zpg , SBC_zpg , INC_zpg , ERR     , INX, SBC_imm , NOP , SBC_imm, CPX_abss, SBC_abss, INC_abss, ERR     ,//E0
+    BZS    , SBC_indy, ERR    , ERR     , NOP_zpgx, SBC_zpgx, INC_zpgx, ERR     , SED, SBC_absy, NOP , ERR    , NOP_absx, SBC_absx, INC_absx, ERR     ,//F0
 };
 
 const char* instructions[256] = {"BRK","ORA_xind","ERR","ERR","ERR","ORA_zpg","ASL_zpg","ERR","PHP","ORA_imm","ASLA","ERR","ERR","ORA_abss","ASL_abss","ERR","BNC","ORA_indy","ERR","ERR","ERR","ORA_zpgx","ASL_zpgx","ERR","CLC","ORA_absy","ERR","ERR","ERR","ORA_absx","ASL_absx","ERR","JSR","AND_xind","ERR","ERR","BIT_zpg","AND_zpg","ROL_zpg","ERR","PLP","AND_imm","ROLA","ERR","BIT_abss","AND_abss","ROL_abss","ERR","BNS","AND_indy","ERR","ERR","ERR","AND_zpgx","ROL_zpgx","ERR","SEC","AND_absy","ERR","ERR","ERR","AND_absx","ROL_absx","ERR","RTI","EOR_xind","ERR","ERR","ERR","EOR_zpg","LSR_zpg","ERR","PHA","EOR_imm","LSRA","ERR","JMP_abss","EOR_abss","LSR_abss","ERR","BVC","EOR_indy","ERR","ERR","ERR","EOR_zpgx","LSR_zpgx","ERR","CLI","EOR_absy","ERR","ERR","ERR","EOR_absx","LSR_absx","ERR","RTS","ADC_xind","ERR","ERR","ERR","ADC_zpg","ROR_zpg","ERR","PLA","ADC_imm","RORA","ERR","JMP_ind","ADC_abss","ROR_abss","ERR","BVS","ADC_indy","ERR","ERR","ERR","ADC_zpgx","ROR_zpgx","ERR","SEI","ADC_absy","ERR","ERR","ERR","ADC_absx","ROR_absx","ERR","ERR","STA_xind","ERR","ERR","STY_zpg","STA_zpg","STX_zpg","ERR","DEY","ERR","TXA","ERR","STY_abss","STA_abss","STX_abss","ERR","BCC","STA_indy","ERR","ERR","STY_zpgx","STA_zpgx","STX_zpgy","ERR","TYA","STA_absy","TXS","ERR","ERR","STA_absx","ERR","ERR","LDY_imm","LDA_xind","LDX_imm","ERR","LDY_zpg","LDA_zpg","LDX_zpg","ERR","TAY","LDA_imm","TAX","ERR","LDY_abss","LDA_abss","LDX_abss","ERR","BCS","LDA_indy","ERR","ERR","LDY_zpgx","LDA_zpgx","LDX_zpgy","ERR","CLV","LDA_absy","TSPX","ERR","LDY_absx","LDA_absx","LDX_absy","ERR","CPY_imm","CMP_xind","ERR","ERR","CPY_zpg","CMP_zpg","DEC_zpg","ERR","INY","CMP_imm","DEX","ERR","CPY_abss","CMP_abss","DEC_abss","ERR","BZC","CMP_indy","ERR","ERR","ERR","CMP_zpgx","DEC_zpgx","ERR","CLD","CMP_absy","ERR","ERR","ERR","CMP_absx","DEC_absx","ERR","CPX_imm","SBC_xind","ERR","ERR","CPX_zpg","SBC_zpg","INC_zpg","ERR","INX","SBC_imm","NOP","ERR","CPX_abss","SBC_abss","INC_abss","ERR","BZS","SBC_indy","ERR","ERR","ERR","SBC_zpgx","INC_zpgx","ERR","SED","SBC_absy","ERR","ERR","ERR","SBC_absx","INC_absx","ERR"};
