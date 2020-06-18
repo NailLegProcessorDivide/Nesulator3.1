@@ -34,6 +34,19 @@ inline uint8_t pop(mos6502 *_cpu) {
     return read_mos6502(_cpu, 0x100 + (++_cpu->SP));
 }
 
+/************************************************
+ * DEBUG PRINT HELPERS
+ */
+
+void printPage(mos6502* _cpu, uint8_t page) {
+    printf("PAGE %02x\n", page);
+    for(int i = 0; i < 16; ++i) {
+        for(int j = 0; j < 16; ++j) {
+            printf("%02X ", read_mos6502(_cpu, (page<<8) + (i * 16 + j)));
+        }
+        printf("\n");
+    }
+}
 
 /************************************************
  *  FLAG FUNCTIONS
@@ -41,6 +54,7 @@ inline uint8_t pop(mos6502 *_cpu) {
 
 #define FLAG_N 0b10000000
 #define FLAG_V 0b01000000
+#define FLAG_X 0b00100000
 #define FLAG_B 0b00010000
 #define FLAG_D 0b00001000
 #define FLAG_I 0b00000100
@@ -155,45 +169,48 @@ uint16_t imm(mos6502 *_cpu) {
 }
 
 uint16_t ind(mos6502 *_cpu) {
-    uint16_t address = (read_mos6502(_cpu, _cpu->PC) | (read_mos6502(_cpu, _cpu->PC + 1) << 8));
-    uint16_t v = read_mos6502(_cpu, address) | (read_mos6502(_cpu, address + 1) << 8);
+    uint16_t address = (read_mos6502(_cpu, _cpu->PC) | (read_mos6502(_cpu, _cpu->PC+1) << 8));
+    uint16_t v = read_mos6502(_cpu, address) | (read_mos6502(_cpu, (address&0xff00) | ((address+1)&0x00ff)) << 8);
     _cpu->PC += 2;
     return v;
 }
 
 uint16_t xind(mos6502 *_cpu) {
-    uint16_t address = (read_mos6502(_cpu, _cpu->PC) | (read_mos6502(_cpu, _cpu->PC + 1) << 8)) + _cpu->X;
-    uint16_t v = read_mos6502(_cpu, address) | (read_mos6502(_cpu, address + 1) << 8);
-    _cpu->PC += 2;
+    //printPage(_cpu, 0);
+    uint8_t address = (read_mos6502(_cpu, _cpu->PC)) + _cpu->X;
+    uint16_t v = read_mos6502(_cpu, address) | (read_mos6502(_cpu, (uint8_t)(address+1)) << 8);
+    _cpu->PC += 1;
     return v;
 }
 
 uint16_t indy(mos6502 *_cpu) {
-    uint16_t address = (read_mos6502(_cpu, _cpu->PC) | (read_mos6502(_cpu, _cpu->PC + 1) << 8));
-    uint16_t v = (uint8_t) (read_mos6502(_cpu, address) | (read_mos6502(_cpu, address + 1) << 8) + _cpu->Y);
-    _cpu->PC += 2;
+    //printPage(_cpu, 0);
+    uint8_t address = (read_mos6502(_cpu, _cpu->PC));
+    uint16_t v = (read_mos6502(_cpu, address) | (read_mos6502(_cpu, (uint8_t)(address + 1)) << 8)) + _cpu->Y;
+    //printf("indy %04X\n", v);
+    _cpu->PC += 1;
     return v;
 }
 
-uint16_t inline zpg(mos6502 *_cpu) {
-    uint16_t val = read_mos6502(_cpu, _cpu->PC);
+uint16_t zpg(mos6502 *_cpu) {
+    uint8_t val = read_mos6502(_cpu, _cpu->PC);
+    _cpu->PC += 1;
+    return (uint8_t)val;
+}
+
+uint16_t zpgx(mos6502 *_cpu) {
+    uint8_t val = (uint8_t) (read_mos6502(_cpu, _cpu->PC) + _cpu->X);
     _cpu->PC += 1;
     return val;
 }
 
-uint16_t inline zpgx(mos6502 *_cpu) {
-    uint16_t val = (uint8_t) (read_mos6502(_cpu, _cpu->PC) + _cpu->X);
+uint16_t zpgy(mos6502 *_cpu) {
+    uint8_t val = (uint8_t) (read_mos6502(_cpu, _cpu->PC) + _cpu->Y);
     _cpu->PC += 1;
     return val;
 }
 
-uint16_t inline zpgy(mos6502 *_cpu) {
-    uint16_t val = (uint8_t) (read_mos6502(_cpu, _cpu->PC) + _cpu->Y);
-    _cpu->PC += 1;
-    return val;
-}
-
-uint16_t inline rel(mos6502 *_cpu) {
+uint16_t rel(mos6502 *_cpu) {
     return (int8_t) read_mos6502(_cpu, _cpu->PC++) + _cpu->PC;
 }
 
@@ -201,10 +218,6 @@ uint16_t inline rel(mos6502 *_cpu) {
  *  INSTRUCTIONS
  ***********************************************/
 
-int NOP(mos6502 *_cpu) {
-    //fprintf(stdout, "NOP at %X\n", _cpu->PC);
-    return 2;
-}
 
 int BRK(mos6502 *_cpu) {
     _cpu->PC += 2;
@@ -273,8 +286,8 @@ int ASLA(mos6502 *_cpu) {
 #define makeJSR(addMode, clockcycles) int JSR(mos6502 *_cpu) {\
     uint16_t v = addMode(_cpu);\
     _cpu->PC-=1;\
-    push(_cpu, _cpu->PC & 0x00ff);\
     push(_cpu, _cpu->PC >> 8);\
+    push(_cpu, _cpu->PC & 0x00ff);\
     _cpu->PC = v;\
     return clockcycles;\
 }// 6 cycles
@@ -390,12 +403,16 @@ makeADC(absy, 4)
 makeADC(xind, 6)
 makeADC(indy, 5)
 
+#define SUBmac(reg, addMode, clockcycles, carry) uint8_t vv = read_mos6502(_cpu, addMode(_cpu));\
+    uint16_t v = _cpu->reg + (uint8_t)(~vv) + carry;\
+    /*printf("sub %hhi, %hhi, %hhi\n", _cpu->reg, vv, (int8_t)v);*/\
+    donzc(_cpu, v);\
+
+
 #define makeSBC(addMode, clockcycles) int SBC_##addMode(mos6502 *_cpu) {\
-    uint8_t v = ~read_mos6502(_cpu, addMode(_cpu));\
-    uint16_t val = _cpu->A - v - (testFlag(_cpu, FLAG_C) ? 1 : 0);\
-    _cpu->A = (uint8_t) val;\
-    donzc(_cpu, val);\
-    setFlag(_cpu, FLAG_V, (v ^ _cpu->A) & 0x80);\
+    SUBmac(A, addMode, clockcycles, (testFlag(_cpu, FLAG_C) ? 1 : 0));\
+    setFlag(_cpu, FLAG_V, (((vv&0x80))? (int8_t)v < (int8_t)_cpu->A : (int8_t)v > (int8_t)_cpu->A));\
+    _cpu->A = (uint8_t) v;\
     return clockcycles;\
 }
 makeSBC(imm, 2)
@@ -408,17 +425,12 @@ makeSBC(xind, 6)
 makeSBC(indy, 5)
 
 #define makeCMP(addMode, clockcycles) int CMP_##addMode (mos6502 *_cpu) {\
-    /*uint16_t v = _cpu->A - read_mos6502(_cpu, addMode(_cpu));*/\
-    uint8_t vv = read_mos6502(_cpu, addMode(_cpu));\
-    uint16_t v = _cpu->A + (uint8_t)(~vv) + 1;\
-    /*printf("cmp %i = - %i + %i", v, vv, _cpu->A);*/\
-    donzc(_cpu, v);\
+    SUBmac(A, addMode, clockcycles, 1);\
     return clockcycles;\
 }
 
 #define makeCP_(reg, addMode, clockcycles) int CP##reg##_##addMode (mos6502 *_cpu) {\
-    uint16_t v = _cpu->reg - read_mos6502(_cpu, addMode(_cpu));\
-    donzc(_cpu, v);\
+    SUBmac(reg, addMode, clockcycles, 1)\
     return clockcycles;\
 }
 makeCMP(imm, 2)
@@ -438,13 +450,16 @@ makeCP_(Y, imm, 2)
 makeCP_(Y, zpg, 3)
 makeCP_(Y, abss, 4)
 
+#define doROR() uint8_t carry = v&1;\
+    uint8_t newV = ((_cpu->flags&FLAG_C)<<7) | (v >> 1);\
+    donz(_cpu, newV);\
+    setFlag(_cpu, FLAG_C, v & 1);\
+
 #define makeROR(addMode, clockcycles) int ROR_##addMode (mos6502 *_cpu) {\
     uint16_t address = addMode(_cpu);\
     uint8_t v = read_mos6502(_cpu, address);\
-    v = (v >> 1) | (v << 7);\
-    write_mos6502(_cpu, address, v);\
-    donz(_cpu, v);\
-    setFlag(_cpu, FLAG_C, v & 0x80);\
+    doROR()\
+    write_mos6502(_cpu, address, newV);\
     return clockcycles;\
 }
 makeROR(zpg, 5)
@@ -454,10 +469,8 @@ makeROR(absx, 7)
 
 int RORA(mos6502 *_cpu) {
     uint8_t v = _cpu->A;
-    v = (v >> 1) | (v << 7);
-    _cpu->A = v;
-    donz(_cpu, v);
-    setFlag(_cpu, FLAG_C, v & 0x80);
+    doROR()
+    _cpu->A = newV;
     return 2;
 }
 
@@ -544,8 +557,12 @@ makeB_C(N, 2)//BPL
 makeB_S(N, 2)//BMI
 
 #define makeINC(addMode, clockcycles) int INC_##addMode(mos6502 *_cpu) {\
+    /*printPage(_cpu, 0);*/\
     uint16_t address = addMode(_cpu);\
-    write_mos6502(_cpu, address, read_mos6502(_cpu, address) + 1);\
+    uint8_t v = read_mos6502(_cpu, address) + 1;\
+    donz(_cpu, v);\
+    /*printf("inc %04x %i\n", address, v);*/\
+    write_mos6502(_cpu, address, v);\
     return clockcycles;\
 }
 
@@ -604,13 +621,15 @@ int PHP(mos6502 *_cpu) {
 }
 
 int RTI(mos6502 *_cpu) {
-    _cpu->flags = pop(_cpu);
-    _cpu->PC = (pop(_cpu) << 8) | pop(_cpu);
+    _cpu->flags = pop(_cpu)|FLAG_X;
+    _cpu->PC = pop(_cpu);
+    _cpu->PC += (pop(_cpu) << 8);
     return 6;
 }
 
 int RTS(mos6502 *_cpu) {
-    _cpu->PC = (pop(_cpu) << 8) + pop(_cpu)+1;
+    _cpu->PC = pop(_cpu) + 1;
+    _cpu->PC += (pop(_cpu) << 8);
     return 6;
 }
 
@@ -618,25 +637,37 @@ int ERR(mos6502 *_cpu){
     getc(stdin);
     return 10000000;
 }
+#define makeNOP(addMode)int NOP_##addMode(mos6502 *_cpu) {\
+    addMode(_cpu);\
+    return 2;\
+}
+int NOP(mos6502 *_cpu) {
+    return 2;
+}
+makeNOP(zpg)
+makeNOP(zpgx)
+makeNOP(abss)
+makeNOP(absx)
+makeNOP(imm)
 
 static const mos6502instruction cpuopmap[256] = {
     //00   , 01      , 02     , 03 , 04      , 05      , 06      , 07 , 08 , 09      , 0A  , 0B , 0C      , 0D      , 0E      , 0F
-    BRK    , ORA_xind, ERR    , ERR, ERR     , ORA_zpg , ASL_zpg , ERR, PHP, ORA_imm , ASLA, ERR, ERR     , ORA_abss, ASL_abss, ERR,//00
-    BNC    , ORA_indy, ERR    , ERR, ERR     , ORA_zpgx, ASL_zpgx, ERR, CLC, ORA_absy, ERR , ERR, ERR     , ORA_absx, ASL_absx, ERR,//10
+    BRK    , ORA_xind, ERR    , ERR, NOP_zpg , ORA_zpg , ASL_zpg , ERR, PHP, ORA_imm , ASLA, ERR, NOP_abss, ORA_abss, ASL_abss, ERR,//00
+    BNC    , ORA_indy, ERR    , ERR, NOP_zpgx, ORA_zpgx, ASL_zpgx, ERR, CLC, ORA_absy, NOP , ERR, NOP_absx, ORA_absx, ASL_absx, ERR,//10
     JSR    , AND_xind, ERR    , ERR, BIT_zpg , AND_zpg , ROL_zpg , ERR, PLP, AND_imm , ROLA, ERR, BIT_abss, AND_abss, ROL_abss, ERR,//20
-    BNS    , AND_indy, ERR    , ERR, ERR     , AND_zpgx, ROL_zpgx, ERR, SEC, AND_absy, ERR , ERR, ERR     , AND_absx, ROL_absx, ERR,//30
-    RTI    , EOR_xind, ERR    , ERR, ERR     , EOR_zpg , LSR_zpg , ERR, PHA, EOR_imm , LSRA, ERR, JMP_abss, EOR_abss, LSR_abss, ERR,//40
-    BVC    , EOR_indy, ERR    , ERR, ERR     , EOR_zpgx, LSR_zpgx, ERR, CLI, EOR_absy, ERR , ERR, ERR     , EOR_absx, LSR_absx, ERR,//50
-    RTS    , ADC_xind, ERR    , ERR, ERR     , ADC_zpg , ROR_zpg , ERR, PLA, ADC_imm , RORA, ERR, JMP_ind , ADC_abss, ROR_abss, ERR,//60
-    BVS    , ADC_indy, ERR    , ERR, ERR     , ADC_zpgx, ROR_zpgx, ERR, SEI, ADC_absy, ERR , ERR, ERR     , ADC_absx, ROR_absx, ERR,//70
-    ERR    , STA_xind, ERR    , ERR, STY_zpg , STA_zpg , STX_zpg , ERR, DEY, ERR     , TXA , ERR, STY_abss, STA_abss, STX_abss, ERR,//80
+    BNS    , AND_indy, ERR    , ERR, NOP_zpgx, AND_zpgx, ROL_zpgx, ERR, SEC, AND_absy, NOP , ERR, NOP_absx, AND_absx, ROL_absx, ERR,//30
+    RTI    , EOR_xind, ERR    , ERR, NOP_zpg , EOR_zpg , LSR_zpg , ERR, PHA, EOR_imm , LSRA, ERR, JMP_abss, EOR_abss, LSR_abss, ERR,//40
+    BVC    , EOR_indy, ERR    , ERR, NOP_zpgx, EOR_zpgx, LSR_zpgx, ERR, CLI, EOR_absy, NOP , ERR, NOP_absx, EOR_absx, LSR_absx, ERR,//50
+    RTS    , ADC_xind, ERR    , ERR, NOP_zpg , ADC_zpg , ROR_zpg , ERR, PLA, ADC_imm , RORA, ERR, JMP_ind , ADC_abss, ROR_abss, ERR,//60
+    BVS    , ADC_indy, ERR    , ERR, NOP_zpgx, ADC_zpgx, ROR_zpgx, ERR, SEI, ADC_absy, NOP , ERR, NOP_absx, ADC_absx, ROR_absx, ERR,//70
+    NOP_imm, STA_xind, ERR    , ERR, STY_zpg , STA_zpg , STX_zpg , ERR, DEY, ERR     , TXA , ERR, STY_abss, STA_abss, STX_abss, ERR,//80
     BCC    , STA_indy, ERR    , ERR, STY_zpgx, STA_zpgx, STX_zpgy, ERR, TYA, STA_absy, TXS , ERR, ERR     , STA_absx, ERR     , ERR,//90
     LDY_imm, LDA_xind, LDX_imm, ERR, LDY_zpg , LDA_zpg , LDX_zpg , ERR, TAY, LDA_imm , TAX , ERR, LDY_abss, LDA_abss, LDX_abss, ERR,//A0
     BCS    , LDA_indy, ERR    , ERR, LDY_zpgx, LDA_zpgx, LDX_zpgy, ERR, CLV, LDA_absy, TSPX, ERR, LDY_absx, LDA_absx, LDX_absy, ERR,//B0
     CPY_imm, CMP_xind, ERR    , ERR, CPY_zpg , CMP_zpg , DEC_zpg , ERR, INY, CMP_imm , DEX , ERR, CPY_abss, CMP_abss, DEC_abss, ERR,//C0
-    BZC    , CMP_indy, ERR    , ERR, ERR     , CMP_zpgx, DEC_zpgx, ERR, CLD, CMP_absy, ERR , ERR, ERR     , CMP_absx, DEC_absx, ERR,//D0
+    BZC    , CMP_indy, ERR    , ERR, NOP_zpgx, CMP_zpgx, DEC_zpgx, ERR, CLD, CMP_absy, NOP , ERR, NOP_absx, CMP_absx, DEC_absx, ERR,//D0
     CPX_imm, SBC_xind, ERR    , ERR, CPX_zpg , SBC_zpg , INC_zpg , ERR, INX, SBC_imm , NOP , ERR, CPX_abss, SBC_abss, INC_abss, ERR,//E0
-    BZS    , SBC_indy, ERR    , ERR, ERR     , SBC_zpgx, INC_zpgx, ERR, SED, SBC_absy, ERR , ERR, ERR     , SBC_absx, INC_absx, ERR,//F0
+    BZS    , SBC_indy, ERR    , ERR, NOP_zpgx, SBC_zpgx, INC_zpgx, ERR, SED, SBC_absy, NOP , ERR, NOP_absx, SBC_absx, INC_absx, ERR,//F0
 };
 
 const char* instructions[256] = {"BRK","ORA_xind","ERR","ERR","ERR","ORA_zpg","ASL_zpg","ERR","PHP","ORA_imm","ASLA","ERR","ERR","ORA_abss","ASL_abss","ERR","BNC","ORA_indy","ERR","ERR","ERR","ORA_zpgx","ASL_zpgx","ERR","CLC","ORA_absy","ERR","ERR","ERR","ORA_absx","ASL_absx","ERR","JSR","AND_xind","ERR","ERR","BIT_zpg","AND_zpg","ROL_zpg","ERR","PLP","AND_imm","ROLA","ERR","BIT_abss","AND_abss","ROL_abss","ERR","BNS","AND_indy","ERR","ERR","ERR","AND_zpgx","ROL_zpgx","ERR","SEC","AND_absy","ERR","ERR","ERR","AND_absx","ROL_absx","ERR","RTI","EOR_xind","ERR","ERR","ERR","EOR_zpg","LSR_zpg","ERR","PHA","EOR_imm","LSRA","ERR","JMP_abss","EOR_abss","LSR_abss","ERR","BVC","EOR_indy","ERR","ERR","ERR","EOR_zpgx","LSR_zpgx","ERR","CLI","EOR_absy","ERR","ERR","ERR","EOR_absx","LSR_absx","ERR","RTS","ADC_xind","ERR","ERR","ERR","ADC_zpg","ROR_zpg","ERR","PLA","ADC_imm","RORA","ERR","JMP_ind","ADC_abss","ROR_abss","ERR","BVS","ADC_indy","ERR","ERR","ERR","ADC_zpgx","ROR_zpgx","ERR","SEI","ADC_absy","ERR","ERR","ERR","ADC_absx","ROR_absx","ERR","ERR","STA_xind","ERR","ERR","STY_zpg","STA_zpg","STX_zpg","ERR","DEY","ERR","TXA","ERR","STY_abss","STA_abss","STX_abss","ERR","BCC","STA_indy","ERR","ERR","STY_zpgx","STA_zpgx","STX_zpgy","ERR","TYA","STA_absy","TXS","ERR","ERR","STA_absx","ERR","ERR","LDY_imm","LDA_xind","LDX_imm","ERR","LDY_zpg","LDA_zpg","LDX_zpg","ERR","TAY","LDA_imm","TAX","ERR","LDY_abss","LDA_abss","LDX_abss","ERR","BCS","LDA_indy","ERR","ERR","LDY_zpgx","LDA_zpgx","LDX_zpgy","ERR","CLV","LDA_absy","TSPX","ERR","LDY_absx","LDA_absx","LDX_absy","ERR","CPY_imm","CMP_xind","ERR","ERR","CPY_zpg","CMP_zpg","DEC_zpg","ERR","INY","CMP_imm","DEX","ERR","CPY_abss","CMP_abss","DEC_abss","ERR","BZC","CMP_indy","ERR","ERR","ERR","CMP_zpgx","DEC_zpgx","ERR","CLD","CMP_absy","ERR","ERR","ERR","CMP_absx","DEC_absx","ERR","CPX_imm","SBC_xind","ERR","ERR","CPX_zpg","SBC_zpg","INC_zpg","ERR","INX","SBC_imm","NOP","ERR","CPX_abss","SBC_abss","INC_abss","ERR","BZS","SBC_indy","ERR","ERR","ERR","SBC_zpgx","INC_zpgx","ERR","SED","SBC_absy","ERR","ERR","ERR","SBC_absx","INC_absx","ERR"};
@@ -655,8 +686,6 @@ const char* instructions[256] = {"BRK","ORA_xind","ERR","ERR","ERR","ORA_zpg","A
 int counter = 0;
 
 int stepCpu(mos6502 *_cpu) {
-    fflush(stderr);
-    fflush(stdout);
     //printf("running instruction from 0x%04X\n", _cpu->PC);
     uint8_t opcode = read_mos6502(_cpu, _cpu->PC++);
 

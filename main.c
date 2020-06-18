@@ -53,7 +53,7 @@ int main(int iargs, char** args){
     */
     triggerRST(&mycpu);
     mycpu.PC = 0xc000;
-    for(int i = 0; i < 1280; ++i) {
+    for(int i = 0; i < 7000; ++i) {
         stepCpu(&mycpu);
     }
     destroyRamDevice816(&ram);
