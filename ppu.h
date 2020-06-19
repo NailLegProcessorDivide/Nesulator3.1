@@ -29,6 +29,9 @@ struct ppu {
 
     uint8_t scrollWriteNo;
     uint8_t PPUADDRWriteNo;
+
+    device816 *devices;
+    size_t deviceCount;
 };
 
 typedef struct ppu ppu;

@@ -11,8 +11,8 @@
 #define PRERENDEREND 21
 #define PICTUREEND 261
 
-makeRead(ppu);
-makeWrite(ppu);
+makeDeviceReader(ppu)
+makeDeviceWriter(ppu)
 
 uint8_t read(void *myppu, uint16_t address) {
     ppu *_ppu = (ppu *) myppu;

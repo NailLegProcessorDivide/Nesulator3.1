@@ -30,11 +30,9 @@ struct nesFileHeader {
 typedef struct nesFileHeader nesFileHeader;
 
 uint8_t basicReader(void* data, uint16_t addr) {
-	return ((uint8_t*)data)[addr];
-}
-
-uint8_t basicMirroredReader(void* data, uint16_t addr) {
-	return ((uint8_t*)data)[addr & 0x3FFF];
+    //printf("nrom %016X - ", &((uint8_t**)data)[addr >> 10][addr & 0x03FF]);
+    //printf("nrom read %i %i\n", addr >> 10, addr & 0x03FF);
+	return ((uint8_t**)data)[addr >> 10][addr & 0x03FF];//read from address/1024
 }
 
 uint8_t mirroredVRomReader(void* data, uint16_t addr) {
@@ -46,23 +44,27 @@ void nullWrite(void* data, uint16_t addr, uint8_t val) {
 }
 
 void createNRom(nesCart* cart, const uint8_t* romData, const nesFileHeader* hData) {
-	cart->prgRom.data = romData;
+    printf("nrom %016X\n", romData);
+    for (int i = 0; i < 32; i++) {
+        cart->prgBanks[i] = &romData[BANK_SIZE * (i%(16*hData->nRomBanks))];
+        printf("nrom %04X\n", BANK_SIZE * (i%(16*hData->nRomBanks)));
+    }
+
+    for (int j = 0; j < 4; j++) {
+        cart->chrBanks[j] = &romData[ROM_PAGE_SIZE * hData->nRomBanks + BANK_SIZE * j];
+    }
+	cart->prgRom.data = &(cart->prgBanks);
+    cart->prgRom.start = 0x8000;
 	cart->prgRom.length = 0x8000;
-	cart->prgRom.start = 0x8000;
+    cart->prgRom.readfun = basicReader;
 	cart->prgRom.writefun = nullWrite;
 
-	cart->chrRom.data = romData + ROM_PAGE_SIZE * hData->nRomBanks;
+	cart->chrRom.data = &(cart->chrBanks);
+    cart->chrRom.start = 0;
 	cart->chrRom.length = 0x2000;
-	cart->chrRom.start = 0;
 	cart->chrRom.readfun = mirroredVRomReader;
 	cart->chrRom.writefun = nullWrite;
 
-	if (hData->nRomBanks == 2) { // 2 banks - full 32K ROM
-		cart->prgRom.readfun = basicReader;
-	}
-	else { // 1 bank - mirrored 16K ROM
-		cart->prgRom.readfun = basicMirroredReader;
-	}
 }
 
 void createMMC3(nesCart* cart, const uint8_t* romData, const nesFileHeader* hData) {
@@ -120,13 +122,7 @@ int createNesCart(nesCart* cart, const char* fileName) {
 	fread(gameData, sizeof(uint8_t), fileDataSize, file);
 	fclose(file); // close file
 
-	for (int i = 0; i < 16; i++) {
-		cart->prgBanks[i] = gameData + BANK_SIZE * i;
-	}
 
-	for (int j = 0; j < 4; j++) {
-		cart->chrBanks[j] = gameData + ROM_PAGE_SIZE * hData.nRomBanks + BANK_SIZE * j;
-	}
 
 	switch (hData.mapperID) {
 	case 0: // NROM

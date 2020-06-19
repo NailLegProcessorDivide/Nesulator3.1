@@ -40,10 +40,16 @@ inline uint8_t pop(mos6502* _cpu) {
  ***********************************************/
 
 void printPage(mos6502* _cpu, uint8_t page) {
-	printf("PAGE %02x\n", page);
+    uint8_t pageData[256];
 	for (int i = 0; i < 16; ++i) {
-		for (int j = 0; j < 16; ++j) {
-			printf("%02X ", read_mos6502(_cpu, (page << 8) + (i * 16 + j)));
+        for (int j = 0; j < 16; ++j) {
+            pageData[i * 16 + j] = read_mos6502(_cpu, (page << 8) + (i * 16 + j));
+        }
+    }
+    printf("PAGE %02x\n", page);
+    for (int i = 0; i < 16; ++i) {
+        for (int j = 0; j < 16; ++j) {
+            printf("%02X ", pageData[i * 16 + j]);
 		}
 		printf("\n");
 	}
@@ -829,6 +835,14 @@ int counter = 0;
 // executes next instruction
 int stepCpu(mos6502* _cpu) {
 	//printf("running instruction from 0x%04X\n", _cpu->PC);
+    //printPage(_cpu, 0x80);
+    //printPage(_cpu, 0xC0);
+    //printPage(_cpu, 0xC3);
+    //printPage(_cpu, 0XC4);
+    //printPage(_cpu, 0XFF);
+    //printPage(_cpu, 0xC2);
+    //printPage(_cpu, 0xFE);
+    //printPage(_cpu, 0xFF);
 	uint8_t opcode = read_mos6502(_cpu, _cpu->PC++);
 
 	if (pc_expected[counter] != _cpu->PC - 1 || opcode_expected[counter] != opcode || a_expected[counter] != _cpu->A || x_expected[counter] != _cpu->X ||
