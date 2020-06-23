@@ -6,19 +6,14 @@
 
 #include <time.h>
 
-uint8_t eaterRead(void* data, uint16_t add) {
-    return 0xea;
-}
-void eaterWrite(void* data, uint16_t add, uint8_t val) {
-
-}
 
 int main(int iargs, char** args){
     mos6502 mycpu;
-    ppu myppu;
+    ppu2A03 myppu;
     createCpu(&mycpu);
     device816 ram;
     device816 rom;
+    device816 ppuDev;
     nesCart nc;
 
 
@@ -46,19 +41,11 @@ int main(int iargs, char** args){
         return -1;
     }
 
+    createPPUDevice(&ppuDev, &myppu);
+    add_mos6502_device(&myppu, &ppuDev);
+
     createPPU(&myppu);
 
-    /*device816 eaterTests;
-    eaterTests.length = 0xFFFF;
-    eaterTests.readfun = eaterRead;
-    eaterTests.writefun = eaterWrite;
-    eaterTests.start = 0;
-
-    //if (!addDevice(&mycpu, &eaterTests)) {
-    //    puts("add eater error");
-    //    return -1;
-    //}
-    */
     long long nesTime = 0;
 
     clock_t start, end;

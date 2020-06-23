@@ -11,11 +11,11 @@
 #define PRERENDER_END 21
 #define PIC_END 261
 
-makeDeviceReader(ppu)
-makeDeviceWriter(ppu)
+makeDeviceReader(ppu2A03)
+makeDeviceWriter(ppu2A03)
 
 uint8_t read(void *myppu, uint16_t address) {
-    ppu *_ppu = (ppu *) myppu;
+    ppu2A03 *_ppu = (ppu2A03 *) myppu;
     address &= 0x0007; // get the last 3 bits of the address to determine the register (registers are mirrored)
     switch (address) {
         case 2: // PPUSTATUS
@@ -33,7 +33,7 @@ uint8_t read(void *myppu, uint16_t address) {
 }
 
 void write(void *myppu, uint16_t address, uint8_t val) {
-    ppu *_ppu = (ppu *) myppu;
+    ppu2A03 *_ppu = (ppu2A03 *) myppu;
     address &= 0x0007;
     switch (address) {
         case 0: // PPUCTRL
@@ -73,7 +73,15 @@ void write(void *myppu, uint16_t address, uint8_t val) {
     }
 }
 
-void createPPU(ppu *_ppu) {
+void createPPUDevice(device816* dev, ppu2A03* _ppu) {
+    dev->length = 0x2000;
+    dev->data = _ppu;
+    dev->readfun = read;
+    dev->writefun = write;
+    dev->start = 0x2000;
+}
+
+void createPPU(ppu2A03 *_ppu) {
     _ppu->PPUCTRL = 0;
     _ppu->PPUMASK = 0;
     _ppu->PPUSTATUS = 0;
@@ -97,9 +105,12 @@ void createPPU(ppu *_ppu) {
     _ppu->vramMap[3] = &_ppu->vram[0x0400];
 
     _ppu->ppuTick = 0;
+
+    _ppu->devices = nullptr;
+    _ppu->deviceCount = 0;
 }
 
-void renderLine(ppu* _ppu, uint8_t* lineOutBuffer, uint8_t renderLineNo) {
+void renderLine(ppu2A03* _ppu, uint8_t* lineOutBuffer, uint8_t renderLineNo) {
     uint16_t realLineNo = (renderLineNo + (_ppu->PPUCTRL&2)*120 + _ppu->PPUSCROLLY); // &2*120 + 240 if bit 2 is set
     uint8_t yTile = (realLineNo>>3)%30;
     uint16_t nameTableLineAddr = ((realLineNo>>3)%30)*32 + (((realLineNo>>3)/30)&1)*0x800;
@@ -110,24 +121,24 @@ void renderLine(ppu* _ppu, uint8_t* lineOutBuffer, uint8_t renderLineNo) {
         uint16_t xAddrOffset = (realColNo>>3) + ((realColNo>>8) & 1) * 0x400;// (/8 = >>3) then (/32 = >>5) so >> 8 is both
 
         uint16_t nameTableAddress = 0x2000 + nameTableLineAddr + xAddrOffset;
-        uint8_t ntval = read_ppu(_ppu, nameTableAddress);
+        uint8_t ntval = read_ppu2A03(_ppu, nameTableAddress);
 
         uint16_t attribAddress =  (nameTableAddress&0x2fC0) + (yTile>>2)*8 + (xTile>>2);
-        uint8_t ppuAttribVal = read_ppu(_ppu, attribAddress);
+        uint8_t ppuAttribVal = read_ppu2A03(_ppu, attribAddress);
 
         uint8_t colPal = (ppuAttribVal>>(((yTile<<1)&4) + ((xTile)&2)))&3;
 
         uint16_t patternTableAddress = (ntval<<4) + (realLineNo&7);
-        uint8_t ptByteLeft = read_ppu(_ppu, patternTableAddress);
-        uint16_t ptByteRight = read_ppu(_ppu, patternTableAddress+8)<<1;
+        uint8_t ptByteLeft = read_ppu2A03(_ppu, patternTableAddress);
+        uint16_t ptByteRight = read_ppu2A03(_ppu, patternTableAddress+8)<<1;
 
-        for(int tx = 0; tx < 8; ++tx){
+        for(int tx = 0; tx < 8; ++tx) {
             uint8_t pixCol;
             uint8_t colInd = ((ptByteLeft>>tx)&1) | ((ptByteRight>>tx)&1);
-            if(colInd){
+            if(colInd) {
                 pixCol = _ppu->colourPalette[colPal*4 + colInd];
             }
-            else{
+            else {
                 pixCol = _ppu->colourPalette[0];
             }
 
@@ -136,10 +147,10 @@ void renderLine(ppu* _ppu, uint8_t* lineOutBuffer, uint8_t renderLineNo) {
             }
         }
     }
-
 }
 
-void stepPPU(ppu *_ppu) {
+void stepPPU(ppu2A03 *_ppu) {
+    uint8_t nothing[256];
     ++_ppu->ppuTick;
 
     if(_ppu->ppuTick <= 29658) return;//wait a few cycles before starting the ppu
@@ -148,5 +159,9 @@ void stepPPU(ppu *_ppu) {
     _ppu->frameCounter += (_ppu->frameRow) / LINE_COUNT;
     _ppu->frameCol %= LINE_WIDTH;
     _ppu->frameRow %= LINE_COUNT;
+
+    if(_ppu->frameCol == 1 && _ppu->frameRow < 240) {
+        renderLine(_ppu, nothing, _ppu->frameRow);
+    }
 }
 

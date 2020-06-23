@@ -7,7 +7,7 @@
 
 #include "emulatorGlue.h"
 
-struct ppu {
+struct ppu2A03 {
     uint8_t PPUCTRL;
     uint8_t PPUMASK;
     uint8_t PPUSTATUS;
@@ -38,11 +38,11 @@ struct ppu {
     uint64_t ppuTick;
 };
 
-typedef struct ppu ppu;
+typedef struct ppu2A03 ppu2A03;
 
-void createPPU(ppu*);
-void stepPPU(ppu*);
-void createPPUDevice(device816*, ppu*);
-void destroyPPU(ppu*);
+void createPPU(ppu2A03*);
+void stepPPU(ppu2A03*);
+void createPPUDevice(device816*, ppu2A03*);
+void destroyPPU(ppu2A03*);
 
 #endif //NESULATOR_PPU_H
