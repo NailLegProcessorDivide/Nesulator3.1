@@ -831,7 +831,7 @@ const char* instructions[256] = { "BRK","ORA_xind","ERR","SLO_xind","NOP_zpg","O
   (byte & 0x01 ? 'C' : '-')
 
 int counter = 0;
-
+//#define testNes
 // executes next instruction
 int stepCpu(mos6502* _cpu) {
 	//printf("running instruction from 0x%04X\n", _cpu->PC);
@@ -844,7 +844,7 @@ int stepCpu(mos6502* _cpu) {
     //printPage(_cpu, 0xFE);
     //printPage(_cpu, 0xFF);
 	uint8_t opcode = read_mos6502(_cpu, _cpu->PC++);
-
+#ifdef testNes
 	if (pc_expected[counter] != _cpu->PC - 1 || opcode_expected[counter] != opcode || a_expected[counter] != _cpu->A || x_expected[counter] != _cpu->X ||
 		y_expected[counter] != _cpu->Y || flag_expected[counter] != _cpu->flags || sp_expected[counter] != _cpu->SP) {
 
@@ -892,6 +892,7 @@ int stepCpu(mos6502* _cpu) {
 
 	//fprintf(stdout, "RUNNING 0x%04X 0x%02X\n",  _cpu->PC-1, opcode);
 	counter++;
+#endif
 	return cpuopmap[opcode](_cpu);
 
 }

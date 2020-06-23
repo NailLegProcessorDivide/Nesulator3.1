@@ -3,6 +3,8 @@
 #include "gameCart.h"
 #include <stdio.h>
 
+#include <time.h>
+
 uint8_t eaterRead(void* data, uint16_t add) {
     return 0xea;
 }
@@ -17,7 +19,7 @@ int main(int iargs, char** args){
     device816 rom;
     nesCart nc;
 
-    if(createNesCart(&nc, "F:\\nestest.nes")){
+    if(createNesCart(&nc, "/home/joseph/Downloads/nestest.nes")){
     //if(createNesCart(&nc, "X:\\nestest.nes")){
         return -1;
     }
@@ -51,11 +53,30 @@ int main(int iargs, char** args){
     //    return -1;
     //}
     */
+    long long nesTime = 0;
+
+    clock_t start, end;
+    long long cpu_time_clocks;
+    double cpu_time_used;
+
+    start = clock();
+
     triggerRST(&mycpu);
     mycpu.PC = 0xc000;
-    for(int i = 0; i < 7000; ++i) {
-        stepCpu(&mycpu);
+    for(int i = 0; i < 4800; ++i) {
+        nesTime += stepCpu(&mycpu);
     }
+
+    end = clock();
+    cpu_time_clocks = ((long long) (end - start));
+    cpu_time_used = ((double) cpu_time_clocks)/CLOCKS_PER_SEC;
+
+    double nesTimeSecs = nesTime / 1789773.;
+
+    printf("\ntime taken %lld clocks (%f seconds)\n", cpu_time_clocks, cpu_time_used);
+    printf("simulated %lld nes clocks (%f seconds of nes time)\n", nesTime, nesTimeSecs);
+    printf("nes clock running at %f times real time\n\n", nesTimeSecs/cpu_time_used);
+
     destroyRamDevice816(&ram);
     destroyRomDevice816(&rom);
     fputs("EXIT SUCCESS\n", stdout);
