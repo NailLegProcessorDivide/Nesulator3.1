@@ -102,5 +102,6 @@ void stepPPU(ppu *_ppu) {
     _ppu->frameCounter += (_ppu->frameRow) / LINECOUNT;
     _ppu->frameCol %= LINEWIDTH;
     _ppu->frameRow %= LINECOUNT;
+
 }
 
