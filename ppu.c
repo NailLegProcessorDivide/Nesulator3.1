@@ -4,12 +4,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define LINEWIDTH 341
-#define LINECOUNT 262
-#define PICTUREWIDTH 256
-#define PICTUREHEIGHT 240
-#define PRERENDEREND 21
-#define PICTUREEND 261
+#define LINE_WIDTH 341
+#define LINE_COUNT 262
+#define PIC_WIDTH 256
+#define PIC_HEIGHT 240
+#define PRERENDER_END 21
+#define PIC_END 261
 
 makeDeviceReader(ppu)
 makeDeviceWriter(ppu)
@@ -98,10 +98,9 @@ void createPPU(ppu *_ppu) {
 }
 
 void stepPPU(ppu *_ppu) {
-    _ppu->frameRow += (_ppu->frameCol++) / LINEWIDTH;
-    _ppu->frameCounter += (_ppu->frameRow) / LINECOUNT;
-    _ppu->frameCol %= LINEWIDTH;
-    _ppu->frameRow %= LINECOUNT;
-
+    _ppu->frameRow += (_ppu->frameCol++) / LINE_WIDTH;
+    _ppu->frameCounter += (_ppu->frameRow) / LINE_COUNT;
+    _ppu->frameCol %= LINE_WIDTH;
+    _ppu->frameRow %= LINE_COUNT;
 }
 
