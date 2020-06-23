@@ -95,9 +95,55 @@ void createPPU(ppu *_ppu) {
     _ppu->vramMap[1] = &_ppu->vram[0x0000];
     _ppu->vramMap[2] = &_ppu->vram[0x0400];
     _ppu->vramMap[3] = &_ppu->vram[0x0400];
+
+    _ppu->ppuTick = 0;
+}
+
+void renderLine(ppu* _ppu, uint8_t* lineOutBuffer, uint8_t renderLineNo) {
+    uint16_t realLineNo = (renderLineNo + (_ppu->PPUCTRL&2)*120 + _ppu->PPUSCROLLY); // &2*120 + 240 if bit 2 is set
+    uint8_t yTile = (realLineNo>>3)%30;
+    uint16_t nameTableLineAddr = ((realLineNo>>3)%30)*32 + (((realLineNo>>3)/30)&1)*0x800;
+
+    for(int xpix = (_ppu->PPUSCROLLX&7) - 8; xpix < 256; xpix += 8) {
+        uint16_t realColNo = (xpix + ((_ppu->PPUCTRL&1)<<8) + _ppu->PPUSCROLLX);
+        uint8_t xTile = (realColNo>>3)%32;
+        uint16_t xAddrOffset = (realColNo>>3) + ((realColNo>>8) & 1) * 0x400;// (/8 = >>3) then (/32 = >>5) so >> 8 is both
+
+        uint16_t nameTableAddress = 0x2000 + nameTableLineAddr + xAddrOffset;
+        uint8_t ntval = read_ppu(_ppu, nameTableAddress);
+
+        uint16_t attribAddress =  (nameTableAddress&0x2fC0) + (yTile>>2)*8 + (xTile>>2);
+        uint8_t ppuAttribVal = read_ppu(_ppu, attribAddress);
+
+        uint8_t colPal = (ppuAttribVal>>(((yTile<<1)&4) + ((xTile)&2)))&3;
+
+        uint16_t patternTableAddress = (ntval<<4) + (realLineNo&7);
+        uint8_t ptByteLeft = read_ppu(_ppu, patternTableAddress);
+        uint16_t ptByteRight = read_ppu(_ppu, patternTableAddress+8)<<1;
+
+        for(int tx = 0; tx < 8; ++tx){
+            uint8_t pixCol;
+            uint8_t colInd = ((ptByteLeft>>tx)&1) | ((ptByteRight>>tx)&1);
+            if(colInd){
+                pixCol = _ppu->colourPalette[colPal*4 + colInd];
+            }
+            else{
+                pixCol = _ppu->colourPalette[0];
+            }
+
+            if(xpix + tx >= 0 || xpix + tx < 256) {
+                lineOutBuffer[xpix+tx] = pixCol;
+            }
+        }
+    }
+
 }
 
 void stepPPU(ppu *_ppu) {
+    ++_ppu->ppuTick;
+
+    if(_ppu->ppuTick <= 29658) return;//wait a few cycles before starting the ppu
+
     _ppu->frameRow += (_ppu->frameCol++) / LINE_WIDTH;
     _ppu->frameCounter += (_ppu->frameRow) / LINE_COUNT;
     _ppu->frameCol %= LINE_WIDTH;

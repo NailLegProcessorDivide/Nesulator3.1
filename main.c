@@ -1,4 +1,5 @@
 #include "cpu.h"
+#include "ppu.h"
 #include "memory.h"
 #include "gameCart.h"
 #include <stdio.h>
@@ -14,17 +15,16 @@ void eaterWrite(void* data, uint16_t add, uint8_t val) {
 
 int main(int iargs, char** args){
     mos6502 mycpu;
+    ppu myppu;
     createCpu(&mycpu);
     device816 ram;
     device816 rom;
     nesCart nc;
 
-<<<<<<< HEAD
-    if(createNesCart(&nc, "X:/nestest.nes")){
-=======
+
+
     if(createNesCart(&nc, "/home/joseph/Downloads/nestest.nes")){
     //if(createNesCart(&nc, "X:\\nestest.nes")){
->>>>>>> 236b0e1eca99fe753ce55159072ea1285eaa9f91
         return -1;
     }
 
@@ -45,6 +45,8 @@ int main(int iargs, char** args){
         fputs("ERROR: Failed to add CPU ROM\n", stderr);
         return -1;
     }
+
+    createPPU(&myppu);
 
     /*device816 eaterTests;
     eaterTests.length = 0xFFFF;
@@ -69,6 +71,9 @@ int main(int iargs, char** args){
     mycpu.PC = 0xc000;
     for(int i = 0; i < 4800; ++i) {
         nesTime += stepCpu(&mycpu);
+        stepPPU(&myppu);
+        stepPPU(&myppu);
+        stepPPU(&myppu);
     }
 
     end = clock();

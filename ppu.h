@@ -23,6 +23,8 @@ struct ppu {
     uint8_t oamram[0x200];
     uint8_t* vramMap[4];
 
+    uint8_t colourPalette[16];
+
     uint32_t frameCounter;
     uint16_t frameRow;
     uint16_t frameCol;
@@ -32,6 +34,8 @@ struct ppu {
 
     device816 *devices;
     size_t deviceCount;
+
+    uint64_t ppuTick;
 };
 
 typedef struct ppu ppu;
