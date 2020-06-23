@@ -44,11 +44,11 @@ void nullWrite(void* data, uint16_t addr, uint8_t val) {
 }
 
 void createNRom(nesCart* cart, const uint8_t* romData, const nesFileHeader* hData) {
-    printf("nrom %016X\n", romData);
-    for (int i = 0; i < 32; i++) {
-        cart->prgBanks[i] = &romData[BANK_SIZE * (i%(16*hData->nRomBanks))];
-        printf("nrom %04X\n", BANK_SIZE * (i%(16*hData->nRomBanks)));
-    }
+	//printf("nrom %016X\n", romData);
+	for (int i = 0; i < 32; i++) {
+		cart->prgBanks[i] = &romData[BANK_SIZE * (i % (16 * hData->nRomBanks))];
+		//printf("nrom %04X\n", BANK_SIZE * (i % (16 * hData->nRomBanks)));
+	}
 
     for (int j = 0; j < 4; j++) {
         cart->chrBanks[j] = &romData[ROM_PAGE_SIZE * hData->nRomBanks + BANK_SIZE * j];
@@ -64,17 +64,28 @@ void createNRom(nesCart* cart, const uint8_t* romData, const nesFileHeader* hDat
 	cart->chrRom.length = 0x2000;
 	cart->chrRom.readfun = mirroredVRomReader;
 	cart->chrRom.writefun = nullWrite;
-
 }
 
 void createMMC3(nesCart* cart, const uint8_t* romData, const nesFileHeader* hData) {
 
+
+	cart->prgRom.data = &(cart->prgBanks);
+	cart->prgRom.start = 0x8000;
+	cart->prgRom.length = 0x8000;
+	cart->prgRom.readfun = basicReader;
+	cart->prgRom.writefun = nullWrite;
+
+	cart->chrRom.data = &(cart->chrBanks);
+	cart->chrRom.start = 0;
+	cart->chrRom.length = 0x2000;
+	cart->chrRom.readfun = mirroredVRomReader;
+	cart->chrRom.writefun = nullWrite;
 }
 
 int createNesCart(nesCart* cart, const char* fileName) {
 	FILE* file = fopen(fileName, "rb"); // read file in binary mode
 	if (file == NULL) {
-		fputs("file not found\n", stderr);
+		fputs("ERROR: file not found\n", stderr);
 		return -1;
 	}
 	uint8_t nesStr[4];
@@ -121,8 +132,6 @@ int createNesCart(nesCart* cart, const char* fileName) {
 	uint8_t* gameData = malloc(sizeof(uint8_t) * fileDataSize);
 	fread(gameData, sizeof(uint8_t), fileDataSize, file);
 	fclose(file); // close file
-
-
 
 	switch (hData.mapperID) {
 	case 0: // NROM

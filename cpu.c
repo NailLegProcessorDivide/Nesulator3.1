@@ -881,7 +881,7 @@ int stepCpu(mos6502* _cpu) {
 			printf(" !!SP!! ");
 		}
 
-		__debugbreak();
+		//__debugbreak();
 	}
 	else {
 		printf("| %i) CORRECT ==>\t 0x%04X 0x%02X (%-9s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
