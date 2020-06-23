@@ -25,9 +25,8 @@ uint8_t read(void *myppu, uint16_t address) {
         case 4: // OAMDATA
             return _ppu->oamram[_ppu->OAMADDR];
         case 7: // PPUDATA
-            uint8_t data = _ppu->vram[_ppu->PPUADDR];
             _ppu->PPUADDR += (_ppu->PPUCTRL & 0b00000100) == 0 ? 1 : 32; // determine increment from 2nd bit of PPUCTRL
-            return data;
+            return _ppu->vram[_ppu->PPUADDR];
     }
     fprintf(stderr, "WARNING: attempted to read from unmapped memory");
     return 0;

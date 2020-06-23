@@ -27,11 +27,11 @@ makeDeviceAdder(mos6502);
 makeDeviceReader(mos6502);
 makeDeviceWriter(mos6502);
 
-inline void push(mos6502* _cpu, uint8_t val) {
+void push(mos6502* _cpu, uint8_t val) {
 	write_mos6502(_cpu, 0x100 + (_cpu->SP--), val);
 }
 
-inline uint8_t pop(mos6502* _cpu) {
+uint8_t pop(mos6502* _cpu) {
 	return read_mos6502(_cpu, 0x100 + (++_cpu->SP));
 }
 
@@ -73,31 +73,31 @@ void printRegisters(mos6502* _cpu) {
 #define FLAG_Z 0b00000010 // zero
 #define FLAG_C 0b00000001 // carry
 
-inline void setFlags(mos6502* _cpu, uint8_t flags) {
+void setFlags(mos6502* _cpu, uint8_t flags) {
 	_cpu->flags |= flags;
 }
 
-inline void setFlag(mos6502* _cpu, uint8_t flag, bool state) {
+void setFlag(mos6502* _cpu, uint8_t flag, bool state) {
 	if (state) _cpu->flags |= flag;
 	else _cpu->flags &= ~flag;
 }
 
-inline void unsetFlag(mos6502* _cpu, uint8_t flag) {
+void unsetFlag(mos6502* _cpu, uint8_t flag) {
 	_cpu->flags &= ~flag;
 }
 
-inline bool testFlag(mos6502* _cpu, uint8_t flag) {
+bool testFlag(mos6502* _cpu, uint8_t flag) {
 	return _cpu->flags & flag;
 }
 
 // modify the N and Z flags 
-inline void doNZ(mos6502* _cpu, uint8_t val) { 
+void doNZ(mos6502* _cpu, uint8_t val) {
 	setFlag(_cpu, FLAG_N, val & FLAG_N);
 	setFlag(_cpu, FLAG_Z, !val);
 }
 
 // modify N, Z and C flags 
-inline void doNZC(mos6502* _cpu, uint16_t val) { 
+void doNZC(mos6502* _cpu, uint16_t val) {
 	setFlag(_cpu, FLAG_N, val & FLAG_N);
 	setFlag(_cpu, FLAG_Z, !(val & 0x00FF));
 	setFlag(_cpu, FLAG_C, val & 0x0100);
@@ -831,7 +831,7 @@ const char* instructions[256] = { "BRK","ORA_xind","ERR","SLO_xind","NOP_zpg","O
   (byte & 0x01 ? 'C' : '-')
 
 int counter = 0;
-
+//#define testNes
 // executes next instruction
 int stepCpu(mos6502* _cpu) {
 	//printf("running instruction from 0x%04X\n", _cpu->PC);
@@ -844,7 +844,7 @@ int stepCpu(mos6502* _cpu) {
     //printPage(_cpu, 0xFE);
     //printPage(_cpu, 0xFF);
 	uint8_t opcode = read_mos6502(_cpu, _cpu->PC++);
-
+#ifdef testNes
 	if (pc_expected[counter] != _cpu->PC - 1 || opcode_expected[counter] != opcode || a_expected[counter] != _cpu->A || x_expected[counter] != _cpu->X ||
 		y_expected[counter] != _cpu->Y || flag_expected[counter] != _cpu->flags || sp_expected[counter] != _cpu->SP) {
 
@@ -880,8 +880,11 @@ int stepCpu(mos6502* _cpu) {
 		if (sp_expected[counter] != _cpu->SP) {
 			printf(" !!SP!! ");
 		}
+<<<<<<< HEAD
 
 		//__debugbreak();
+=======
+>>>>>>> 236b0e1eca99fe753ce55159072ea1285eaa9f91
 	}
 	else {
 		printf("| %i) CORRECT ==>\t 0x%04X 0x%02X (%-9s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
@@ -894,6 +897,7 @@ int stepCpu(mos6502* _cpu) {
 
 	//fprintf(stdout, "RUNNING 0x%04X 0x%02X\n",  _cpu->PC-1, opcode);
 	counter++;
+#endif
 	return cpuopmap[opcode](_cpu);
 
 }

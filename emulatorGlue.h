@@ -6,6 +6,7 @@
 #define NESULATOR_EMULATORGLUE_H
 
 #include <stdbool.h>
+#include <stdlib.h>
 
 #define nullptr NULL
 
