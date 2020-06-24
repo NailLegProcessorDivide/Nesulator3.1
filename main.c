@@ -41,10 +41,11 @@ int main(int iargs, char** args){
         return -1;
     }
 
+    createPPU(&myppu);
+
     createPPUDevice(&ppuDev, &myppu);
     add_mos6502_device(&myppu, &ppuDev);
 
-    createPPU(&myppu);
 
     long long nesTime = 0;
 
