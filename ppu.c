@@ -13,6 +13,7 @@
 
 makeDeviceReader(ppu2A03)
 makeDeviceWriter(ppu2A03)
+makeDeviceAdder(ppu2A03)
 
 uint8_t read(void *myppu, uint16_t address) {
     ppu2A03 *_ppu = (ppu2A03 *) myppu;

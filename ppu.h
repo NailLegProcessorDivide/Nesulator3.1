@@ -45,4 +45,6 @@ void stepPPU(ppu2A03*);
 void createPPUDevice(device816*, ppu2A03*);
 void destroyPPU(ppu2A03*);
 
+makeDeviceAdderDeclaration(ppu2A03)
+
 #endif //NESULATOR_PPU_H

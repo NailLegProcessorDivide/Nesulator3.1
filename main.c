@@ -8,6 +8,18 @@
 
 
 int main(int iargs, char** args){
+    //if(createNesCart(&nc, "X:\\nestest.nes")){
+    const char* nesFilePath = "/home/joseph/Downloads/nestest.nes";
+    const size_t maxLineLen = 1023;
+    char nameBuffer[maxLineLen];
+    if(iargs > 1) {
+        nesFilePath = args[1];
+    }
+    else if (scanf("%1023[^\n]", nameBuffer) > 0) {
+        nesFilePath = nameBuffer;
+        puts("scf");
+    }
+
     mos6502 mycpu;
     ppu2A03 myppu;
     createCpu(&mycpu);
@@ -16,10 +28,9 @@ int main(int iargs, char** args){
     device816 ppuDev;
     nesCart nc;
 
+    printf("using file: %s\n", nesFilePath);
 
-
-    if(createNesCart(&nc, "/home/joseph/Downloads/nestest.nes")){
-    //if(createNesCart(&nc, "X:\\nestest.nes")){
+    if(createNesCart(&nc, nesFilePath)){
         return -1;
     }
 
@@ -44,7 +55,7 @@ int main(int iargs, char** args){
     createPPU(&myppu);
 
     createPPUDevice(&ppuDev, &myppu);
-    add_mos6502_device(&myppu, &ppuDev);
+    add_mos6502_device(&mycpu, &ppuDev);
 
 
     long long nesTime = 0;
@@ -56,7 +67,7 @@ int main(int iargs, char** args){
     start = clock();
 
     triggerRST(&mycpu);
-    mycpu.PC = 0xc000;
+    //mycpu.PC = 0xc000;
     for(int i = 0; i < 4800; ++i) {
         nesTime += stepCpu(&mycpu);
         stepPPU(&myppu);
