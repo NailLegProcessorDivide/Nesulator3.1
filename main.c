@@ -6,16 +6,19 @@
 
 #include <time.h>
 
+#ifdef _WIN32
+#define TEST_FILE "X:/nestest.nes"
+#else
+#define TEST_FILE "/home/joseph/Downloads/nestest.nes"
+#endif
 
-int main(int iargs, char** args){
-    //if(createNesCart(&nc, "X:\\nestest.nes")){
-    const char* nesFilePath = "/home/joseph/Downloads/nestest.nes";
+int main(int iargs, char **args) {
+    const char *nesFilePath = TEST_FILE;
     const size_t maxLineLen = 1023;
-    char nameBuffer[maxLineLen];
-    if(iargs > 1) {
+    char nameBuffer[1024];
+    if (iargs > 1) {
         nesFilePath = args[1];
-    }
-    else if (scanf("%1023[^\n]", nameBuffer) > 0) {
+    } else if (scanf("%1023[^\n]", nameBuffer) > 0) {
         nesFilePath = nameBuffer;
         puts("scf");
     }
@@ -30,10 +33,9 @@ int main(int iargs, char** args){
 
     printf("using file: %s\n", nesFilePath);
 
-    if(createNesCart(&nc, nesFilePath)){
+    if (createNesCart(&nc, nesFilePath)) {
         return -1;
     }
-
 
     if (!createRamDevice816(&ram, 0x800, 0)) {
         fputs("ERROR: RAM failed to initialise\n", stderr);
@@ -57,7 +59,7 @@ int main(int iargs, char** args){
     createPPUDevice(&ppuDev, &myppu);
     add_mos6502_device(&mycpu, &ppuDev);
 
-
+    printf("ready to launch\n");
     long long nesTime = 0;
 
     clock_t start, end;
@@ -68,25 +70,28 @@ int main(int iargs, char** args){
 
     triggerRST(&mycpu);
     //mycpu.PC = 0xc000;
-    for(int i = 0; i < 4800; ++i) {
-        nesTime += stepCpu(&mycpu);
-        stepPPU(&myppu);
-        stepPPU(&myppu);
-        stepPPU(&myppu);
+    for (int i = 0; i < 40000; ++i) {
+        int instLen = stepCpu(&mycpu);
+        for (int i = 0; i < instLen * 3; ++i) {
+            stepPPU(&myppu, &mycpu);
+        }
+        nesTime += instLen;
     }
 
     end = clock();
     cpu_time_clocks = ((long long) (end - start));
-    cpu_time_used = ((double) cpu_time_clocks)/CLOCKS_PER_SEC;
+    cpu_time_used = ((double) cpu_time_clocks) / CLOCKS_PER_SEC;
 
     double nesTimeSecs = nesTime / 1789773.;
 
     printf("\ntime taken %lld clocks (%f seconds)\n", cpu_time_clocks, cpu_time_used);
     printf("simulated %lld nes clocks (%f seconds of nes time)\n", nesTime, nesTimeSecs);
-    printf("nes clock running at %f times real time\n\n", nesTimeSecs/cpu_time_used);
+    printf("nes clock running at %f times real time\n\n", nesTimeSecs / cpu_time_used);
 
     destroyRamDevice816(&ram);
     destroyRomDevice816(&rom);
+
+    destroyPPU(&myppu);
     fputs("EXIT SUCCESS\n", stdout);
     printRegisters(&mycpu);
 
