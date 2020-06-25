@@ -114,7 +114,7 @@ static inline void doNZC(mos6502* _cpu, uint16_t val) {
 
 // non-maskable interrupt
 void triggerNMI(mos6502* _cpu) {
-    printf("nmi\n");
+    printf("nmi\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 	_cpu->PC += 2;
 	push(_cpu, _cpu->PC >> 8); // push high byte on to stack first
 	push(_cpu, _cpu->PC & 0x00FF); // then push the low byte

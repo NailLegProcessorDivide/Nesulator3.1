@@ -13,7 +13,7 @@ if(WIN32)
     endif ()
 endif()
 
-if(LINUX)
+if(UNIX)
     find_package(SDL2 REQUIRED)
 endif()
 

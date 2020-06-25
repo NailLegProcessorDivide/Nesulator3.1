@@ -80,7 +80,7 @@ void ppu2A03write(void *myppu, uint16_t address, uint8_t val) {
 
 void createPPUDevice(device816 *dev, const ppu2A03 *_ppu) {
     dev->length = 0x2000;
-    dev->data = _ppu;
+    dev->data = (void*)_ppu;
     dev->readfun = ppu2A03read;
     dev->writefun = ppu2A03write;
     dev->start = 0x2000;
