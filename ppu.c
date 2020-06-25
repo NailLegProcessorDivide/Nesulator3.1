@@ -15,25 +15,27 @@ makeDeviceReader(ppu2A03)
 makeDeviceWriter(ppu2A03)
 makeDeviceAdder(ppu2A03)
 
-uint8_t read(void *myppu, uint16_t address) {
+uint8_t ppu2A03read(void *myppu, uint16_t address) {
     ppu2A03 *_ppu = (ppu2A03 *) myppu;
     address &= 0x0007; // get the last 3 bits of the address to determine the register (registers are mirrored)
     switch (address) {
         case 2: // PPUSTATUS
             _ppu->scrollWriteNo = 0; // reset address latch for PPUSCROLL## and PPUADDR
             _ppu->PPUADDRWriteNo = 0;
-            return _ppu->PPUSTATUS;
+            uint8_t val = _ppu->PPUSTATUS;
+            _ppu->PPUSTATUS &= 0x7F;
+            return val;
         case 4: // OAMDATA
             return _ppu->oamram[_ppu->OAMADDR];
         case 7: // PPUDATA
             _ppu->PPUADDR += (_ppu->PPUCTRL & 0b00000100) == 0 ? 1 : 32; // determine increment from 2nd bit of PPUCTRL
             return _ppu->vram[_ppu->PPUADDR];
     }
-    fprintf(stderr, "WARNING: attempted to read from unmapped memory");
+    fprintf(stdout, "WARNING: attempted to read from unmapped memory (address 0x%X)\n", address);
     return 0;
 }
 
-void write(void *myppu, uint16_t address, uint8_t val) {
+void ppu2A03write(void *myppu, uint16_t address, uint8_t val) {
     ppu2A03 *_ppu = (ppu2A03 *) myppu;
     address &= 0x0007;
     switch (address) {
@@ -74,11 +76,11 @@ void write(void *myppu, uint16_t address, uint8_t val) {
     }
 }
 
-void createPPUDevice(device816* dev, ppu2A03* _ppu) {
+void createPPUDevice(device816* dev, const ppu2A03* _ppu) {
     dev->length = 0x2000;
     dev->data = _ppu;
-    dev->readfun = read;
-    dev->writefun = write;
+    dev->readfun = ppu2A03read;
+    dev->writefun = ppu2A03write;
     dev->start = 0x2000;
 }
 
@@ -109,6 +111,14 @@ void createPPU(ppu2A03 *_ppu) {
 
     _ppu->devices = nullptr;
     _ppu->deviceCount = 0;
+
+    if(createNesWindow(&_ppu->window)){
+        printf("issue creating window\n");
+    }
+}
+
+void destroyPPU(ppu2A03* _ppu) {
+    deleteNesWindow(_ppu->window);
 }
 
 void renderLine(ppu2A03* _ppu, uint8_t* lineOutBuffer, uint8_t renderLineNo) {
@@ -150,19 +160,31 @@ void renderLine(ppu2A03* _ppu, uint8_t* lineOutBuffer, uint8_t renderLineNo) {
     }
 }
 
-void stepPPU(ppu2A03 *_ppu) {
-    uint8_t nothing[256];
+void stepPPU(ppu2A03 *_ppu, mos6502* _cpu) {
     ++_ppu->ppuTick;
-
+    //printf("ppu tick: %u\n", _ppu->ppuTick);
     if(_ppu->ppuTick <= 29658) return;//wait a few cycles before starting the ppu
-
-    _ppu->frameRow += (_ppu->frameCol++) / LINE_WIDTH;
+    //printf("ppuLive\n");
+    _ppu->frameRow += (++_ppu->frameCol) / LINE_WIDTH;
     _ppu->frameCounter += (_ppu->frameRow) / LINE_COUNT;
     _ppu->frameCol %= LINE_WIDTH;
     _ppu->frameRow %= LINE_COUNT;
-
+    if(_ppu->frameRow == 0) {
+        _ppu->PPUSTATUS &= 0x3F;
+    }
     if(_ppu->frameCol == 1 && _ppu->frameRow < 240) {
-        renderLine(_ppu, nothing, _ppu->frameRow);
+        printf("draw line %u frame %u\n", _ppu->frameRow, _ppu->frameCounter);
+        renderLine(_ppu, &_ppu->screenBuffer[_ppu->frameRow*256], _ppu->frameRow);
+    }
+    if (_ppu->frameRow == 240) {
+        if (_ppu->frameCol == 1) {
+            printf("setState\n");
+            _ppu->PPUSTATUS |= 0x80;
+            drawNesFrame(_ppu->window, _ppu->screenBuffer);
+            if (_ppu->PPUCTRL & 0x80) {
+                triggerNMI(_cpu);
+            }
+        }
     }
 }
 

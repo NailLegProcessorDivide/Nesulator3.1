@@ -4,6 +4,7 @@
 #include "gameCart.h"
 #include <stdio.h>
 
+
 #include <time.h>
 
 
@@ -11,7 +12,7 @@ int main(int iargs, char** args){
     //if(createNesCart(&nc, "X:\\nestest.nes")){
     const char* nesFilePath = "/home/joseph/Downloads/nestest.nes";
     const size_t maxLineLen = 1023;
-    char nameBuffer[maxLineLen];
+    char nameBuffer[maxLineLen+1];
     if(iargs > 1) {
         nesFilePath = args[1];
     }
@@ -57,7 +58,7 @@ int main(int iargs, char** args){
     createPPUDevice(&ppuDev, &myppu);
     add_mos6502_device(&mycpu, &ppuDev);
 
-
+    printf("ready to launch\n");
     long long nesTime = 0;
 
     clock_t start, end;
@@ -68,11 +69,12 @@ int main(int iargs, char** args){
 
     triggerRST(&mycpu);
     //mycpu.PC = 0xc000;
-    for(int i = 0; i < 4800; ++i) {
-        nesTime += stepCpu(&mycpu);
-        stepPPU(&myppu);
-        stepPPU(&myppu);
-        stepPPU(&myppu);
+    for(int i = 0; i < 40000; ++i) {
+        int instLen = stepCpu(&mycpu);
+        for (int i = 0; i < instLen*3; ++i) {
+            stepPPU(&myppu, &mycpu);
+        }
+        nesTime += instLen;
     }
 
     end = clock();
@@ -87,6 +89,8 @@ int main(int iargs, char** args){
 
     destroyRamDevice816(&ram);
     destroyRomDevice816(&rom);
+
+    destroyPPU(&myppu);
     fputs("EXIT SUCCESS\n", stdout);
     printRegisters(&mycpu);
 

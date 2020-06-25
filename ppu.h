@@ -6,6 +6,8 @@
 #define NESULATOR_PPU_H
 
 #include "emulatorGlue.h"
+#include "window.h"
+#include "cpu.h"
 
 struct ppu2A03 {
     uint8_t PPUCTRL;
@@ -24,6 +26,7 @@ struct ppu2A03 {
     uint8_t* vramMap[4];
 
     uint8_t colourPalette[16];
+    uint8_t screenBuffer[256*240];
 
     uint32_t frameCounter;
     uint16_t frameRow;
@@ -36,13 +39,14 @@ struct ppu2A03 {
     size_t deviceCount;
 
     uint64_t ppuTick;
+    nesWindow* window;
 };
 
 typedef struct ppu2A03 ppu2A03;
 
 void createPPU(ppu2A03*);
-void stepPPU(ppu2A03*);
-void createPPUDevice(device816*, ppu2A03*);
+void stepPPU(ppu2A03*, mos6502*);
+void createPPUDevice(device816*, const ppu2A03*);
 void destroyPPU(ppu2A03*);
 
 makeDeviceAdderDeclaration(ppu2A03)

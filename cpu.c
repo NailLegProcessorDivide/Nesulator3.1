@@ -27,11 +27,11 @@ makeDeviceAdder(mos6502);
 makeDeviceReader(mos6502);
 makeDeviceWriter(mos6502);
 
-void push(mos6502* _cpu, uint8_t val) {
+static inline void push(mos6502* _cpu, uint8_t val) {
 	write_mos6502(_cpu, 0x100 + (_cpu->SP--), val);
 }
 
-uint8_t pop(mos6502* _cpu) {
+static inline uint8_t pop(mos6502* _cpu) {
 	return read_mos6502(_cpu, 0x100 + (++_cpu->SP));
 }
 
@@ -73,31 +73,31 @@ void printRegisters(mos6502* _cpu) {
 #define FLAG_Z 0b00000010 // zero
 #define FLAG_C 0b00000001 // carry
 
-void setFlags(mos6502* _cpu, uint8_t flags) {
+static inline void setFlags(mos6502* _cpu, uint8_t flags) {
 	_cpu->flags |= flags;
 }
 
-void setFlag(mos6502* _cpu, uint8_t flag, bool state) {
+static inline void setFlag(mos6502* _cpu, uint8_t flag, bool state) {
 	if (state) _cpu->flags |= flag;
 	else _cpu->flags &= ~flag;
 }
 
-void unsetFlag(mos6502* _cpu, uint8_t flag) {
+static inline void unsetFlag(mos6502* _cpu, uint8_t flag) {
 	_cpu->flags &= ~flag;
 }
 
-bool testFlag(mos6502* _cpu, uint8_t flag) {
+static inline bool testFlag(mos6502* _cpu, uint8_t flag) {
 	return _cpu->flags & flag;
 }
 
 // modify the N and Z flags 
-void doNZ(mos6502* _cpu, uint8_t val) {
+static inline void doNZ(mos6502* _cpu, uint8_t val) {
 	setFlag(_cpu, FLAG_N, val & FLAG_N);
 	setFlag(_cpu, FLAG_Z, !val);
 }
 
 // modify N, Z and C flags 
-void doNZC(mos6502* _cpu, uint16_t val) {
+static inline void doNZC(mos6502* _cpu, uint16_t val) {
 	setFlag(_cpu, FLAG_N, val & FLAG_N);
 	setFlag(_cpu, FLAG_Z, !(val & 0x00FF));
 	setFlag(_cpu, FLAG_C, val & 0x0100);
@@ -114,6 +114,7 @@ void doNZC(mos6502* _cpu, uint16_t val) {
 
 // non-maskable interrupt
 void triggerNMI(mos6502* _cpu) {
+    printf("nmi\n");
 	_cpu->PC += 2;
 	push(_cpu, _cpu->PC >> 8); // push high byte on to stack first
 	push(_cpu, _cpu->PC & 0x00FF); // then push the low byte
@@ -155,35 +156,35 @@ void triggerIRQ(mos6502* _cpu) {
  ***********************************************/
 
  // absolute addressing
-uint16_t abss(mos6502* _cpu) {
+static inline uint16_t abss(mos6502* _cpu) {
 	uint16_t address = read_mos6502(_cpu, _cpu->PC) | (read_mos6502(_cpu, _cpu->PC + 1) << 8);
 	_cpu->PC += 2;
 	return address;
 }
 
-uint8_t accRead(mos6502* _cpu) {
+static inline uint8_t accRead(mos6502* _cpu) {
 	return _cpu->A;
 }
 
-void accWrite(mos6502* _cpu, uint8_t val) {
+static inline void accWrite(mos6502* _cpu, uint8_t val) {
 	_cpu->A = val;
 }
 
 // absolute + value of X
-uint16_t absx(mos6502* _cpu) {
+static inline uint16_t absx(mos6502* _cpu) {
 	uint16_t ret = (read_mos6502(_cpu, _cpu->PC) | (read_mos6502(_cpu, _cpu->PC + 1) << 8)) + _cpu->X;
 	_cpu->PC += 2;
 	return ret;
 }
 
 // absolute + value of Y
-uint16_t absy(mos6502* _cpu) {
+static inline uint16_t absy(mos6502* _cpu) {
 	uint16_t ret = (read_mos6502(_cpu, _cpu->PC) | (read_mos6502(_cpu, _cpu->PC + 1) << 8)) + _cpu->Y;
 	_cpu->PC += 2;
 	return ret;
 }
 
-uint16_t imm(mos6502* _cpu) {
+static inline uint16_t imm(mos6502* _cpu) {
 	return _cpu->PC++;
 }
 
@@ -196,7 +197,6 @@ uint16_t ind(mos6502* _cpu) {
 
 // read(address + value of X)
 uint16_t xind(mos6502* _cpu) {
-	//printPage(_cpu, 0);
 	uint8_t address = (read_mos6502(_cpu, _cpu->PC)) + _cpu->X;
 	uint16_t val = read_mos6502(_cpu, address) | (read_mos6502(_cpu, (uint8_t)(address + 1)) << 8);
 	_cpu->PC += 1;
@@ -205,36 +205,34 @@ uint16_t xind(mos6502* _cpu) {
 
 // read(address) + value of Y
 uint16_t indy(mos6502* _cpu) {
-	//printPage(_cpu, 0);
 	uint8_t address = (read_mos6502(_cpu, _cpu->PC));
 	uint16_t val = (read_mos6502(_cpu, address) | (read_mos6502(_cpu, (uint8_t)(address + 1)) << 8)) + _cpu->Y;
-	//printf("indy %04X\n", val);
 	_cpu->PC += 1;
 	return val;
 }
 
 // zeropage
-uint16_t zpg(mos6502* _cpu) {
+static inline uint16_t zpg(mos6502* _cpu) {
 	uint8_t val = read_mos6502(_cpu, _cpu->PC);
 	_cpu->PC += 1;
 	return (uint8_t)val;
 }
 
 // zeropage + value of X
-uint16_t zpgx(mos6502* _cpu) {
+static inline uint16_t zpgx(mos6502* _cpu) {
 	uint8_t val = (uint8_t)(read_mos6502(_cpu, _cpu->PC) + _cpu->X);
 	_cpu->PC += 1;
 	return val;
 }
 
 // zeropage + value of Y
-uint16_t zpgy(mos6502* _cpu) {
+static inline uint16_t zpgy(mos6502* _cpu) {
 	uint8_t val = (uint8_t)(read_mos6502(_cpu, _cpu->PC) + _cpu->Y);
 	_cpu->PC += 1;
 	return val;
 }
 
-uint16_t rel(mos6502* _cpu) {
+static inline uint16_t rel(mos6502* _cpu) {
 	return (int8_t)read_mos6502(_cpu, _cpu->PC++) + _cpu->PC;
 }
 
@@ -835,14 +833,6 @@ int counter = 0;
 // executes next instruction
 int stepCpu(mos6502* _cpu) {
 	//printf("running instruction from 0x%04X\n", _cpu->PC);
-    //printPage(_cpu, 0x80);
-    //printPage(_cpu, 0xC0);
-    //printPage(_cpu, 0xC3);
-    //printPage(_cpu, 0XC4);
-    //printPage(_cpu, 0XFF);
-    //printPage(_cpu, 0xC2);
-    //printPage(_cpu, 0xFE);
-    //printPage(_cpu, 0xFF);
 	uint8_t opcode = read_mos6502(_cpu, _cpu->PC++);
 #ifdef testNes
 	if (pc_expected[counter] != _cpu->PC - 1 || opcode_expected[counter] != opcode || a_expected[counter] != _cpu->A || x_expected[counter] != _cpu->X ||
@@ -880,11 +870,6 @@ int stepCpu(mos6502* _cpu) {
 		if (sp_expected[counter] != _cpu->SP) {
 			printf(" !!SP!! ");
 		}
-<<<<<<< HEAD
-
-		//__debugbreak();
-=======
->>>>>>> 236b0e1eca99fe753ce55159072ea1285eaa9f91
 	}
 	else {
 		printf("| %i) CORRECT ==>\t 0x%04X 0x%02X (%-9s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
@@ -898,6 +883,9 @@ int stepCpu(mos6502* _cpu) {
 	//fprintf(stdout, "RUNNING 0x%04X 0x%02X\n",  _cpu->PC-1, opcode);
 	counter++;
 #endif
+    printf("| ACTUAL   ==>\t 0x%04X 0x%02X (%-9s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
+           _cpu->PC - 1, opcode, instructions[opcode], _cpu->A, _cpu->X, _cpu->Y, BYTE_TO_FLAGS(_cpu->flags),
+           _cpu->SP);
 	return cpuopmap[opcode](_cpu);
 
 }
