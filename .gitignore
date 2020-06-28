@@ -6,3 +6,8 @@
 /.vs/
 /out/
 /SDL2/
+/Debug/
+/Linking/
+/Nesulator3.1/
+*.sln
+*.dll
