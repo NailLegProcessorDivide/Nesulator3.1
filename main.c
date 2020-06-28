@@ -70,7 +70,8 @@ int main(int iargs, char **args) {
 
     triggerRST(&mycpu);
     //mycpu.PC = 0xc000;
-    for (int i = 0; i < 40000; ++i) {
+    //for (int i = 0; i < 45000; ++i) {
+    for (int i = 0; i < 400000; ++i) {
         int instLen = stepCpu(&mycpu);
         for (int i = 0; i < instLen * 3; ++i) {
             stepPPU(&myppu, &mycpu);
