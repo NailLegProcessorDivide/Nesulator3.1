@@ -25,7 +25,7 @@ struct ppu2A03 {
     uint8_t oamram[0x100];
     uint8_t *vramMap[4];
 
-    uint8_t colourPalette[16];
+    uint8_t colourPalette[32];
     uint8_t screenBuffer[256 * 240];
 
     uint32_t frameCounter;

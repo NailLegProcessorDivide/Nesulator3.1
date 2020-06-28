@@ -79,7 +79,7 @@ void ppu2A03write(void *myppu, uint16_t address, uint8_t val) {
 }
 
 void writePalate(ppu2A03* _ppu, uint16_t address, uint8_t value) {
-    uint8_t add = address%16;
+    uint8_t add = address%32;
     if(add&3)
         _ppu->colourPalette[add] = value;
     else
@@ -87,7 +87,7 @@ void writePalate(ppu2A03* _ppu, uint16_t address, uint8_t value) {
 }
 
 uint8_t readPalate(ppu2A03 *_ppu, uint16_t address) {
-    uint8_t add = address%16;
+    uint8_t add = address%32;
     if(add&3)
         return _ppu->colourPalette[add];
     else
@@ -152,17 +152,15 @@ void renderLine(ppu2A03 *_ppu, uint8_t *lineOutBuffer, uint8_t renderLineNo) {
     uint8_t yTile = (realLineNo >> 3) % 30;
     uint16_t nameTableLineAddr = ((realLineNo >> 3) % 30) * 32 + (((realLineNo >> 3) / 30) & 1) * 0x800;
 
-    for (int xpix = (_ppu->PPUSCROLLX & 7) - 8; xpix < 256; xpix += 8) {
-        size_t dataCounter = 0;
-        uint8_t spriteData[32];
-        for (int i = 0; dataCounter != 32; i += 4) {
-            if (abs(_ppu->oamram[i] + 1 - realLineNo) < 8) {
-                spriteData[dataCounter++] = _ppu->oamram[i];
-                spriteData[dataCounter++] = _ppu->oamram[i + 1];
-                spriteData[dataCounter++] = _ppu->oamram[i + 2];
-                spriteData[dataCounter++] = _ppu->oamram[i + 3];
-            }
+    size_t dataCounter = 0;
+    uint8_t spriteData[32];
+    for (int i = 0; i < 64 && dataCounter != 32; ++i) {
+        if ((uint8_t)(-_ppu->oamram[i*4] - 1 + renderLineNo) < 8u) {
+            ((uint32_t*)spriteData)[dataCounter++] = ((uint32_t*)_ppu->oamram)[i];
         }
+    }
+
+    for (int xpix = (_ppu->PPUSCROLLX & 7) - 8; xpix < 256; xpix += 8) {
 
         uint16_t realColNo = (xpix + ((_ppu->PPUCTRL & 1) << 8) + _ppu->PPUSCROLLX);
         uint8_t xTile = (realColNo >> 3) % 32;
@@ -192,6 +190,22 @@ void renderLine(ppu2A03 *_ppu, uint8_t *lineOutBuffer, uint8_t renderLineNo) {
 
             if (xpix + tx >= 0 || xpix + tx < 256) {
                 lineOutBuffer[xpix + tx] = pixCol;
+
+                for(int i = 0; i < 8; ++i){
+                    if((uint8_t)((xpix + tx)-spriteData[i*4+3]) < 8u){
+
+                        uint8_t spriteCol;
+                        uint8_t spriteInd = ((ptByteLeft >> tx) & 1) | ((ptByteRight >> tx) & 1);
+                        if (colInd) {
+                            spriteCol = _ppu->colourPalette[16 + colPal * 4 + spriteInd];
+                        } else {
+                            spriteCol = _ppu->colourPalette[16];
+                        }
+
+                        //do the pixel
+                        break;
+                    }
+                }
             }
         }
     }
