@@ -153,10 +153,21 @@ void renderLine(ppu2A03 *_ppu, uint8_t *lineOutBuffer, uint8_t renderLineNo) {
     uint16_t nameTableLineAddr = ((realLineNo >> 3) % 30) * 32 + (((realLineNo >> 3) / 30) & 1) * 0x800;
 
     for (int xpix = (_ppu->PPUSCROLLX & 7) - 8; xpix < 256; xpix += 8) {
+        size_t dataCounter = 0;
+        uint8_t spriteData[32];
+        for (int i = 0; dataCounter != 32; i += 4) {
+            if (abs(_ppu->oamram[i] + 1 - realLineNo) < 8) {
+                spriteData[dataCounter++] = _ppu->oamram[i];
+                spriteData[dataCounter++] = _ppu->oamram[i + 1];
+                spriteData[dataCounter++] = _ppu->oamram[i + 2];
+                spriteData[dataCounter++] = _ppu->oamram[i + 3];
+            }
+        }
+
         uint16_t realColNo = (xpix + ((_ppu->PPUCTRL & 1) << 8) + _ppu->PPUSCROLLX);
         uint8_t xTile = (realColNo >> 3) % 32;
         uint16_t xAddrOffset =
-                (realColNo >> 3) + ((realColNo >> 8) & 1) * 0x400;// (/8 = >>3) then (/32 = >>5) so >> 8 is both
+                (realColNo >> 3) + ((realColNo >> 8) & 1) * 0x400; // (/8 = >>3) then (/32 = >>5) so >> 8 is both
 
         uint16_t nameTableAddress = 0x2000 + nameTableLineAddr + xAddrOffset;
         uint8_t ntval = read_ppu2A03(_ppu, nameTableAddress);

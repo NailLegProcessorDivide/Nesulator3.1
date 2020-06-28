@@ -61,7 +61,7 @@ int createNesWindow(nesWindow **window) {
 }
 
 void drawNesFrame(nesWindow *nesWind, const uint8_t *frameData) {
-    uint32_t pixelBuffer[256 * 240 * 16];
+    uint32_t* pixelBuffer = malloc(256 * 240 * 16 * sizeof(uint32_t));
     for (int y = 0; y < 240; ++y) {
         for (int x = 0; x < 256; ++x) {
             uint8_t col = frameData[x + y * 256] & 0x3F;
@@ -72,6 +72,7 @@ void drawNesFrame(nesWindow *nesWind, const uint8_t *frameData) {
         }
     }
     SDL_UpdateTexture(nesWind->texture, NULL, pixelBuffer, 1024 * sizeof(Uint32));
+    free(pixelBuffer);
     SDL_RenderCopy(nesWind->renderer, nesWind->texture, NULL, NULL);
     SDL_RenderPresent(nesWind->renderer);
     SDL_Delay(20);

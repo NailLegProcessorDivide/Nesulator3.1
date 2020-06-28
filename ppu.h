@@ -22,7 +22,7 @@ struct ppu2A03 {
     uint8_t OAMDMA;
 
     uint8_t vram[0x800];
-    uint8_t oamram[0x200];
+    uint8_t oamram[0x100];
     uint8_t *vramMap[4];
 
     uint8_t colourPalette[16];
