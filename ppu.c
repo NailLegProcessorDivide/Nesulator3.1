@@ -78,6 +78,30 @@ void ppu2A03write(void *myppu, uint16_t address, uint8_t val) {
     }
 }
 
+void writePalate(ppu2A03* _ppu, uint16_t address, uint8_t value) {
+    uint8_t add = address%16;
+    if(add&3)
+        _ppu->colourPalette[add] = value;
+    else
+        _ppu->colourPalette[add&0x0F] = value;
+}
+
+uint8_t readPalate(ppu2A03 *_ppu, uint16_t address) {
+    uint8_t add = address%16;
+    if(add&3)
+        return _ppu->colourPalette[add];
+    else
+        return _ppu->colourPalette[add&0x0F];
+}
+
+void makePalateDevice(ppu2A03* _ppu, device816* dev) {
+    dev->start = 0x3F00;
+    dev->length = 0x0100;
+    dev->writefun = writePalate;
+    dev->readfun = readPalate;
+    dev->data = (void*)_ppu;
+}
+
 void createPPUDevice(device816 *dev, const ppu2A03 *_ppu) {
     dev->length = 0x2000;
     dev->data = (void*)_ppu;
@@ -172,7 +196,7 @@ void stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
     _ppu->frameCol %= LINE_WIDTH;
     _ppu->frameRow %= LINE_COUNT;
     if (_ppu->frameRow == 0) {
-        _ppu->PPUSTATUS &= 0x3F;
+        _ppu->PPUSTATUS &= 0xBF;
     }
     if (_ppu->frameCol == 1 && _ppu->frameRow < 240) {
         printf("draw line %u frame %u\n", _ppu->frameRow, _ppu->frameCounter);
@@ -186,6 +210,11 @@ void stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
             if (_ppu->PPUCTRL & 0x80) {
                 triggerNMI(_cpu);
             }
+        }
+    }
+    if (_ppu->frameRow == 260) {
+        if(_ppu->frameCol == 0) {
+            _ppu->PPUSTATUS &= 0x7F;
         }
     }
 }
