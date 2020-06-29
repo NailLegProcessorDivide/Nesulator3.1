@@ -189,15 +189,18 @@ void renderLine(ppu2A03 *_ppu, uint8_t *lineOutBuffer, uint8_t renderLineNo) {
             }
 
             if (xpix + tx >= 0 || xpix + tx < 256) {
-                lineOutBuffer[xpix + tx] = pixCol;
+                uint8_t spriteCol;
+                for (int i = 0; i < 8; ++i) {
+                    uint8_t pixPos = (xpix + tx) - spriteData[i * 4 + 3];
+                    if (pixPos < 8u) {
+                        uint8_t spptByteLeft = read_ppu2A03(_ppu, patternTableAddress);
+                        uint16_t spptByteRight = read_ppu2A03(_ppu, patternTableAddress + 8) << 1;
 
-                for(int i = 0; i < 8; ++i){
-                    if((uint8_t)((xpix + tx)-spriteData[i*4+3]) < 8u){
+                        uint8_t spriteColInd = spriteData[i * 4 + 2] & 3;
 
-                        uint8_t spriteCol;
                         uint8_t spriteInd = ((ptByteLeft >> tx) & 1) | ((ptByteRight >> tx) & 1);
                         if (colInd) {
-                            spriteCol = _ppu->colourPalette[16 + colPal * 4 + spriteInd];
+                            spriteCol = _ppu->colourPalette[16 + spriteColInd * 4 + spriteInd];
                         } else {
                             spriteCol = _ppu->colourPalette[16];
                         }
@@ -207,6 +210,7 @@ void renderLine(ppu2A03 *_ppu, uint8_t *lineOutBuffer, uint8_t renderLineNo) {
                     }
                 }
             }
+            lineOutBuffer[xpix + tx] = pixCol;
         }
     }
 }
