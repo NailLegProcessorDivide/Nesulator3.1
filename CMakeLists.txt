@@ -19,6 +19,6 @@ endif()
 
 include_directories(${SDL2_INCLUDE_DIRS})
 
-add_executable(${PROJECT_NAME} main.c cpu.h emulatorGlue.h memory.h ppu.h cpu.c memory.c ppu.c gameCart.c gameCart.h data.c data.h window.c window.h)
+add_executable(${PROJECT_NAME} main.c cpu.h emulatorGlue.h memory.h ppu.h cpu.c memory.c ppu.c gameCart.c gameCart.h data.c data.h window.c window.h apu.h apu.c)
 
 target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})
