@@ -1,15 +1,16 @@
-#About:
+# Nesulator
+
+## About:
 
 A Nintendo entertainment system emulator written in c.
 
-#Recomended Usage:
+## Recomended Usage:
 
 Don't
 
-#Build Instructions
+## Build Instructions
 
-```
-git clone https://github.com/NailLegProcessorDivide/Nesulator3.1
+```git clone https://github.com/NailLegProcessorDivide/Nesulator3.1
 cmake .
 make
 ```
