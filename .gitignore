@@ -1,6 +1,7 @@
 # Project exclude paths
 /cmake-build-debug/
 /cmake-build-release/
+/CMakeFiles/
 *.nes
 /venv/
 /.vs/
@@ -12,3 +13,9 @@
 *.sln
 *.dll
 *.json
+
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+Nesulator
+

@@ -71,9 +71,9 @@ int main(int iargs, char **args) {
     triggerRST(&mycpu);
     //mycpu.PC = 0xc000;
     //for (int i = 0; i < 45000; ++i) {
-    for (int i = 0; i < 200; ++i) {
+    for (int i = 0; mycpu.PC != 0x8049; ++i) {
         int instLen = stepCpu(&mycpu);
-        for (int i = 0; i < instLen * 3; ++i) {
+        for (int j = 0; j < instLen * 3; ++j) {
             stepPPU(&myppu, &mycpu);
         }
         nesTime += instLen;

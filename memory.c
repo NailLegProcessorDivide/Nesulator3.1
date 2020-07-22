@@ -19,6 +19,7 @@ void writeRam816(void *mem, uint16_t add, uint8_t val) {
 
 bool createRomDevice816(device816 *dev, uint16_t size, uint16_t offset) {
     dev->data = malloc(sizeof(uint8_t) * size);
+    memset(dev->data, 0, sizeof(uint8_t) * size);
     dev->length = size;
     dev->start = offset;
     dev->readfun = &(readMem816);
@@ -33,6 +34,7 @@ void destroyRomDevice816(device816 *dev) {
 
 bool createRamDevice816(device816 *dev, uint16_t size, uint16_t offset) {
     dev->data = malloc(sizeof(uint8_t) * size);
+    memset(dev->data, 0, sizeof(uint8_t) * size);
     dev->length = size;
     dev->start = offset;
     dev->readfun = &(readMem816);
