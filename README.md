@@ -1,16 +1,20 @@
 # Nesulator
 
-## About:
+## About
 
 A Nintendo entertainment system emulator written in c.
 
-## Recomended Usage:
+## Usage
 
-Don't
+To run the program put the following in the commandline:
+
+```
+Nesulator <NES ROM Filepath>
+```
 
 ## Build Instructions
 
-```git clone https://github.com/NailLegProcessorDivide/Nesulator3.1
+```
 cmake .
 make
 ```
