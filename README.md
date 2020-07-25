@@ -29,10 +29,10 @@ and I was inspired try to make my own retro console emulator.
 ## Challenges
 
 The first part of the nes I tackled was the MOS6502 cpu.
-The largest challenge I found in this was the shear number of opcodes 
+The largest challenge I found in this was the sheer number of opcodes 
 and wanting to find a more effective way to implement them.
 
-My solution was the use macros to create all of my functions and pass the
+the solution i found was to use macros to create all of my functions and pass the
 opcodes as parameters used to get the address of the byte the cpu is going to be operating on.
 
 This cut the number of functions i needed to create by hand down 
