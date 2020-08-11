@@ -32,7 +32,7 @@ struct ppuDMC {
     uint8_t frequency;
     uint8_t loadCounter;
     uint8_t sampleAddress;
-    uint8_t sampleLength
+    uint8_t sampleLength;
 };
 
 typedef struct ppuPulse ppuPulse;
