@@ -35,9 +35,9 @@ struct ppu2A03 {
     uint8_t colourPalette[32];
     uint8_t screenBuffer[256 * 240];
 
-    uint32_t frameCounter;
-    uint16_t frameRow;
-    uint16_t frameCol;
+    uint64_t frameCounter;
+    uint_fast16_t frameRow;
+    uint_fast16_t frameCol;
 
     device816 *devices;
     size_t deviceCount;
@@ -55,7 +55,7 @@ struct ppu2A03 {
 
     uint16_t vramAddr;
     uint16_t tvramAddr;
-    uint8_t finexScroll;
+    uint_fast8_t finexScroll;
     bool writeToggle;
 
     spriteData spLatches[8];

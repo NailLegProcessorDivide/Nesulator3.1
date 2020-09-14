@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="Nesulator"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="clang"/>
+		<Option virtualFolders="CMake Files\;CMake Files\..\;CMake Files\..\..\;CMake Files\..\..\..\;CMake Files\..\..\..\..\;CMake Files\..\..\..\..\usr\;CMake Files\..\..\..\..\usr\lib\;CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\;CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\cmake\;CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\cmake\SDL2\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/joseph/CLionProjects/Nesulator3.1"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/home/joseph/CLionProjects/Nesulator3.1"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/home/joseph/CLionProjects/Nesulator3.1"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="Nesulator">
+				<Option output="/home/joseph/CLionProjects/Nesulator3.1/Nesulator" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/joseph/CLionProjects/Nesulator3.1"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/usr/include/SDL2"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 Nesulator"/>
+					<CompileFile command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="Nesulator/fast">
+				<Option output="/home/joseph/CLionProjects/Nesulator3.1/Nesulator" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/joseph/CLionProjects/Nesulator3.1"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/usr/include/SDL2"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 Nesulator/fast"/>
+					<CompileFile command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -f &quot;/home/joseph/CLionProjects/Nesulator3.1/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/apu.c">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/apu.h">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/cpu.c">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/cpu.h">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/data.c">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/data.h">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/emulatorGlue.h">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/gameCart.c">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/gameCart.h">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/main.c">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/memory.c">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/memory.h">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/ppu.c">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/ppu.h">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/window.c">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/window.h">
+			<Option target="Nesulator"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/joseph/CLionProjects/Nesulator3.1/../../../../usr/lib/x86_64-linux-gnu/cmake/SDL2/sdl2-config.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\lib\x86_64-linux-gnu\cmake\SDL2\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

@@ -6,6 +6,7 @@
 #define NESULATOR_GAMECART_H
 
 #include "emulatorGlue.h"
+#include "ppu.h"
 
 struct nesCart {
 	device816 prgRom; // CPU ROM
@@ -19,6 +20,6 @@ struct nesCart {
 
 typedef struct nesCart nesCart;
 
-int createNesCart(nesCart* cart, const char* fileName);
+int createNesCart(nesCart* cart, ppu2A03 *_ppu, const char* fileName);
 void destroyNesCart(nesCart* cart);
 #endif //NESULATOR_GAMECART_H

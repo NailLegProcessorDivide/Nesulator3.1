@@ -1,5 +1,6 @@
 #include "cpu.h"
 #include "ppu.h"
+#include "apu.h"
 #include "memory.h"
 #include "gameCart.h"
 #include <stdio.h>
@@ -25,15 +26,17 @@ int main(int iargs, char **args) {
 
     mos6502 mycpu;
     ppu2A03 myppu;
+    apuRP2A03 myapu;
     createCpu(&mycpu);
     device816 ram;
     device816 rom;
+    device816 OAMDMA;
     device816 ppuDev;
     nesCart nc;
 
     printf("using file: %s\n", nesFilePath);
 
-    if (createNesCart(&nc, nesFilePath)) {
+    if (createNesCart(&nc, &myppu, nesFilePath)) {
         return -1;
     }
 
@@ -55,9 +58,15 @@ int main(int iargs, char **args) {
     }
 
     createPPU(&myppu);
+    createAPURP2A03(&myapu, &myppu, &mycpu);
+
+    add_ppu2A03_device(&myppu, &nc.prgRom);
 
     createPPUDevice(&ppuDev, &myppu);
     add_mos6502_device(&mycpu, &ppuDev);
+
+    createDMADevice(&OAMDMA, &myapu);
+    add_mos6502_device(&mycpu, &OAMDMA);
 
     printf("ready to launch\n");
     long long nesTime = 0;
@@ -71,7 +80,7 @@ int main(int iargs, char **args) {
     triggerRST(&mycpu);
     //mycpu.PC = 0xc000;
     //for (int i = 0; i < 45000; ++i) {
-    for (int i = 0; mycpu.PC != 0x8049; ++i) {
+    for (int i = 0; i < 1000000; ++i) {
         int instLen = stepCpu(&mycpu);
         for (int j = 0; j < instLen * 3; ++j) {
             stepPPU(&myppu, &mycpu);

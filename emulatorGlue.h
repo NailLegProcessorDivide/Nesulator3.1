@@ -55,6 +55,7 @@ typedef struct device816 device816;
     newdevs = (device816 *) realloc(base->devices, base->deviceCount * sizeof(device816));\
     if (newdevs == nullptr) {\
         free(base->devices);\
+        base->deviceCount = 0;\
         return false;\
     } else {\
         base->devices = newdevs;\

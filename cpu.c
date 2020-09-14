@@ -114,7 +114,7 @@ static inline void doNZC(mos6502* _cpu, uint16_t val) {
 
 // non-maskable interrupt
 void triggerNMI(mos6502* _cpu) {
-    printf("nmi\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    //printf("nmi\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 	_cpu->PC += 2;
 	push(_cpu, _cpu->PC >> 8); // push high byte on to stack first
 	push(_cpu, _cpu->PC & 0x00FF); // then push the low byte
@@ -883,9 +883,9 @@ int stepCpu(mos6502* _cpu) {
 	//fprintf(stdout, "RUNNING 0x%04X 0x%02X\n",  _cpu->PC-1, opcode);
 	counter++;
 #endif
-    printf("| ACTUAL   ==>\t 0x%04X 0x%02X (%-9s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
+    /*printf("| ACTUAL   ==>\t 0x%04X 0x%02X (%-9s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
            _cpu->PC - 1, opcode, instructions[opcode], _cpu->A, _cpu->X, _cpu->Y, BYTE_TO_FLAGS(_cpu->flags),
-           _cpu->SP);
+           _cpu->SP);*/
 	return cpuopmap[opcode](_cpu);
 
 }

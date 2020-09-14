@@ -21,23 +21,26 @@ makeDeviceAdder(ppu2A03)
 uint8_t ppu2A03read(void *myppu, uint16_t address) {
     ppu2A03 *_ppu = (ppu2A03 *) myppu;
     address &= 0x0007; // get the last 3 bits of the address to determine the register (registers are mirrored)
+    uint8_t rval = 0;
     switch (address) {
         case 2: // PPUSTATUS
             _ppu->writeToggle = false;
             uint8_t val = _ppu->PPUSTATUS;
             _ppu->PPUSTATUS &= 0x7F;
-            return val;
+            rval =  val;
         case 4: // OAMDATA
-            return _ppu->oamram[_ppu->OAMADDR];
+            rval =  _ppu->oamram[_ppu->OAMADDR];
         case 7: // PPUDATA
             _ppu->vramAddr += (_ppu->PPUCTRL & 0b00000100) == 0 ? 1 : 32; // determine increment from 2nd bit of PPUCTRL
-            return _ppu->vram[_ppu->vramAddr & 0x3FFF];
+            rval = _ppu->vram[_ppu->vramAddr & 0x3FFF];
     }
-    fprintf(stdout, "WARNING: attempted to read from unmapped memory (address 0x%X)\n", address);
-    return 0;
+    //printf("read ppureg 0x%04X = 0x%02X\n", address, rval);
+    //fprintf(stdout, "WARNING: attempted to read from unmapped memory (address 0x%X)\n", address);
+    return rval;
 }
 
 void ppu2A03write(void *myppu, uint16_t address, uint8_t val) {
+    //printf("write ppureg 0x%04X = 0x%02X\n", address, val);
     ppu2A03 *_ppu = (ppu2A03 *) myppu;
     address &= 0x0007;
     switch (address) {
@@ -83,10 +86,17 @@ void ppu2A03write(void *myppu, uint16_t address, uint8_t val) {
             }
             break;
         case 7: // PPUDATA
-            _ppu->vram[_ppu->vramAddr] = val;
+            write_ppu2A03(_ppu, _ppu->vramAddr, val);
             _ppu->vramAddr += (_ppu->PPUCTRL & 0b00000100) == 0 ? 1 : 32;
             break;
     }
+}
+
+void writeRAMppu(void* mem, uint16_t address, uint8_t value){
+    ((uint8_t**)mem)[((address>>10)&2)][address & 0x3FF] = value;
+}
+uint8_t readRAMppu(void* mem, uint16_t address){
+    return ((uint8_t*)mem)[address];
 }
 
 void writePalate(void* ppu, uint16_t address, uint8_t value) {
@@ -113,6 +123,14 @@ void makePalateDevice(ppu2A03* _ppu, device816* dev) {
     dev->writefun = writePalate;
     dev->readfun = readPalate;
     dev->data = (void*)_ppu;
+}
+
+void makeNameTableDevice(ppu2A03 *_ppu,device816 *dev) {
+    dev->start = 0x2000;
+    dev->length = 0x1EFF;
+    dev->writefun = writeRAMppu;
+    dev->readfun = readRAMppu;
+    dev->data = (void*)_ppu->vramMap;
 }
 
 void createPPUDevice(device816 *dev, const ppu2A03 *_ppu) {
@@ -149,13 +167,26 @@ void createPPU(ppu2A03 *_ppu) {
     if (createNesWindow(&_ppu->window)) {
         printf("issue creating window\n");
     }
+
+    device816 palletteDevice;
+    makePalateDevice(_ppu, &palletteDevice);
+
+    device816 NTDevice;
+    makeNameTableDevice(_ppu, &NTDevice);
+
+    if(!add_ppu2A03_device(_ppu, &palletteDevice)) {
+        printf("not added pallete device");
+    }
+    if(!add_ppu2A03_device(_ppu, &NTDevice)) {
+        printf("not added pallete device");
+    }
 }
 
 void destroyPPU(ppu2A03 *_ppu) {
     deleteNesWindow(_ppu->window);
 }
 
-inline void cxInc(ppu2A03 *_ppu) {
+void cxInc(ppu2A03 *_ppu) {
     if((_ppu->vramAddr & 0x1F) == 0x1F) {
         _ppu->vramAddr &= ~0x001F;
         _ppu->vramAddr ^= 0x0400;
@@ -165,7 +196,7 @@ inline void cxInc(ppu2A03 *_ppu) {
     }
 }
 
-inline void yInc(ppu2A03 *_ppu) {
+void yInc(ppu2A03 *_ppu) {
     if (_ppu->vramAddr < 0x7000) {
         _ppu->vramAddr += 0x1000;
     }
@@ -175,7 +206,7 @@ inline void yInc(ppu2A03 *_ppu) {
             _ppu->vramAddr &= ~0x03E0;
             _ppu->vramAddr ^= 0x0800;
         }
-        else if (_ppu->vramAddr & 0x03E0== 0x3E0) {
+        else if ((_ppu->vramAddr & 0x03E0) == 0x3E0) {
             _ppu->vramAddr &= ~0x03E0;
         }
         else {
@@ -185,27 +216,30 @@ inline void yInc(ppu2A03 *_ppu) {
     }
 }
 
-inline uint16_t getTileAddr (ppu2A03 *_ppu){
+uint16_t getTileAddr (ppu2A03 *_ppu){
     return 0x2000 | (_ppu->vramAddr & 0x0FFF);
 }
 
-inline uint16_t getAttribAddr (ppu2A03 *_ppu){
+uint16_t getAttribAddr (ppu2A03 *_ppu){
     return 0x23C0 | (_ppu->vramAddr & 0x0C00) |
         ((_ppu->vramAddr >> 4) & 0x38) | ((_ppu->vramAddr >> 2) & 0x07);
 }
 
-inline uint16_t getPatturnAddr(ppu2A03 *_ppu, uint8_t tileNo){
-    return (tileNo<<4) + _ppu->vramAddr>>12;
+uint16_t getPatturnAddr(ppu2A03 *_ppu, uint8_t tileNo){
+    return (tileNo<<4) + (_ppu->vramAddr>>12);
 }
 
-inline uint8_t renderEnable(ppu2A03 *_ppu) {
+uint8_t renderEnable(ppu2A03 *_ppu) {
     return _ppu->PPUMASK&0x18;
 }
-inline uint8_t renderBGEnable(ppu2A03 *_ppu) {
+uint8_t renderBGEnable(ppu2A03 *_ppu) {
     return _ppu->PPUMASK&0x8;
 }
-inline uint8_t renderSPEnable(ppu2A03 *_ppu) {
+uint8_t renderSPEnable(ppu2A03 *_ppu) {
     return _ppu->PPUMASK&0x10;
+}
+void setSPOverFlag(ppu2A03 *_ppu) {
+    _ppu->PPUSTATUS |= 0x20;
 }
 
 void stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
@@ -221,56 +255,114 @@ void stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
         _ppu->PPUSTATUS &= 0xBF;
     }
     if (renderEnable(_ppu)) {
-        if (_ppu->frameRow == 261) {//prerender
-
-        }
         if (_ppu->frameRow < 240) {
+            if (_ppu->frameCol == 64) {
+                memset(_ppu->oamram2, 0xff, 64);
+            } else if (_ppu->frameCol == 256) {
+                uint_fast8_t spfound = 0;
+                uint_fast8_t moffset = 0;
+                for (uint_fast8_t i = 0; i < 64; ++i) {
+                    if(spfound < 8 ) {
+                        if ((uint32_t)(_ppu->oamram[i<<2] - _ppu->frameRow) < 8) {
+                            _ppu->oamram2[spfound << 2] = _ppu->oamram[i << 2];
+                            _ppu->oamram2[(spfound << 2) + 1] = _ppu->oamram[(i << 2) + 1];
+                            _ppu->oamram2[(spfound << 2) + 2] = _ppu->oamram[(i << 2) + 2];
+                            _ppu->oamram2[(spfound << 2) + 3] = _ppu->oamram[(i << 2) + 3];
+                            ++spfound;
+                        }
+                    }
+                    else if ((uint32_t)(_ppu->oamram[(i << 2) + moffset] - _ppu->frameRow) < 8) {
+                        setSPOverFlag(_ppu);
+                    }
+                    else {
+                        ++moffset;
+                        i += (moffset/4);
+                        moffset %= 4;
+                    }
+                }
+                for (uint_fast8_t i = 0; i < 8; ++i) {
+                    uint32_t yOffset = _ppu->oamram2[i << 2] - _ppu->frameRow;
+                    if (yOffset < 8u) {
+                        uint_fast16_t tileAddr = ((_ppu->PPUCTRL&8)<<9) + (_ppu->oamram2[(i << 2) + 1]<<4) + yOffset;
+                        _ppu->spLatches[i].patern0 = ppu2A03read(_ppu, tileAddr);
+                        _ppu->spLatches[i].patern1 = ppu2A03read(_ppu, tileAddr+8);
+                        _ppu->spLatches[i].attrib = _ppu->oamram2[(i << 2) + 2];
+                        _ppu->spLatches[i].xCount = _ppu->oamram2[(i << 2) + 3];
+                    }
+                    else {
+                        _ppu->spLatches[i].patern0 = 0;
+                        _ppu->spLatches[i].patern1 = 0;
+                        _ppu->spLatches[i].attrib = 0;
+                        _ppu->spLatches[i].xCount = 0;
+                    }
+                }
+            }
+
             uint8_t colPal = 0;
             uint8_t colVal = 0;
+            uint8_t spcol = 0;
+            uint8_t spInf;
+            if (_ppu->frameCol < 256) {
+                if (renderSPEnable(_ppu)) {
+                    for (int i = 0; i < 8; ++i) {
+                        if (_ppu->spLatches[i].xCount != 0) {
+                            _ppu->spLatches[i].xCount = 0;
+                        } else {
+                            if (spcol == 0) {
+                                spcol = ((_ppu->spLatches[i].patern0 & 1) << 1) + (_ppu->spLatches[i].patern1 & 1);
+                                spInf = _ppu->spLatches[i].attrib;
+                            }
+                            _ppu->spLatches[i].patern0 <<= 1;
+                            _ppu->spLatches[i].patern1 <<= 1;
+                        }
+                    }
+                }
+                if (renderBGEnable(_ppu)) {
+                    _ppu->AB0 <<= 1;
+                    _ppu->AB1 <<= 1;
+
+                    uint8_t patval = ((_ppu->vramAddr >> 4) & 4) | ((_ppu->vramAddr) & 2);//2 * colour index
+
+                    _ppu->attrib0 = (_ppu->attrib0 << 1) + ((_ppu->attribval >> patval) & 1);
+                    _ppu->attrib1 = (_ppu->attrib1 << 1) + ((_ppu->attribval >> (patval + 1)) & 1);
+
+                    colPal = ((_ppu->attrib0 >> _ppu->finexScroll) & 1) |
+                             (((_ppu->attrib1 >> (_ppu->finexScroll)) << 1) & 2);
+                    colVal = ((_ppu->AB0 >> (8 + _ppu->finexScroll)) & 1) |
+                             ((_ppu->AB1 >> (7 + _ppu->finexScroll)) & 2);
+
+
+
+                }
+                uint8_t fCol = 0;
+                if ((spInf & 0x20) != 0) { //bg->sp
+                    fCol = spcol + ((spInf&3) << 2) + 0x10;
+                }
+                fCol = spcol + ((spInf&3) << 2) + 0x10;
+                if ((spInf & 0x20) == 0){ //sp->bg
+                    fCol = spcol + ((spInf&3) << 2) + 0x10;
+                }
+                _ppu->screenBuffer[_ppu->frameRow * 256 + _ppu->frameCol] = read_ppu2A03(_ppu, 0x3F00 + fCol);
+            }
             if (renderBGEnable(_ppu)) {
-                _ppu->AB0 <<= 1;
-                _ppu->AB1 <<= 1;
+                if (_ppu->frameCol == 256) {
+                    yInc(_ppu);
+                }
+                if ((_ppu->frameCol & 7) == 1 && _ppu->frameCol > 1 && _ppu->frameCol < 258) {//load all at once cause easier
 
-                uint8_t patval = ((_ppu->vramAddr >> 4) & 4) | ((_ppu->vramAddr) & 2);//2 * colour index
-
-                _ppu->attrib0 = (_ppu->attrib0 << 1) + ((_ppu->attribval >> patval) & 1);
-                _ppu->attrib1 = (_ppu->attrib1 << 1) + ((_ppu->attribval >> (patval + 1)) & 1);
-
-                uint8_t colPal = ((_ppu->attrib0 >> _ppu->finexScroll) & 1) |
-                                 (((_ppu->attrib1 >> (_ppu->finexScroll)) << 1) & 2);
-                uint8_t colVal = ((_ppu->AB0 >> (8 + _ppu->finexScroll)) & 1) |
-                                 ((_ppu->AB1 >> (7 + _ppu->finexScroll)) & 2);
+                    uint8_t nt = read_ppu2A03(_ppu, getTileAddr(_ppu));
+                    _ppu->attribval = read_ppu2A03(_ppu, getAttribAddr(_ppu));
+                    uint16_t pAddr = getPatturnAddr(_ppu, nt);
+                    _ppu->AB0 |= read_ppu2A03(_ppu, pAddr);
+                    _ppu->AB1 |= read_ppu2A03(_ppu, pAddr + 8);
+                }
             }
 
-            if (_ppu->frameCol <= 64) {
-                _ppu->oamram2[_ppu->frameCol >> 1] = 0xFF;
-            } else if (_ppu->frameCol <= 256) {
-
-            }
-
-            if (colVal == 0) {
-                _ppu->screenBuffer[_ppu->frameRow * 256 + _ppu->frameCol] = 0;
-            } else {
-                _ppu->screenBuffer[_ppu->frameRow * 256 + _ppu->frameCol] = colVal + colPal << 2;
-            }
-
-
-            if (_ppu->frameCol == 256) {
-                yInc(_ppu);
-            }
-            if ((_ppu->frameCol & 7) == 1 && _ppu->frameCol > 1 &&
-                _ppu->frameCol < 258) {//load all at once cause easier
-                uint8_t nt = read_ppu2A03(_ppu, getTileAddr(_ppu));
-                _ppu->attribval = read_ppu2A03(_ppu, getAttribAddr(_ppu));
-                uint16_t pAddr = getPatturnAddr(_ppu, nt);
-                _ppu->AB0 |= read_ppu2A03(_ppu, pAddr);
-                _ppu->AB1 |= read_ppu2A03(_ppu, pAddr + 8);
-            }
         }
     }
     if (_ppu->frameRow == 240) {
         if (_ppu->frameCol == 1) {
-            printf("setState\n");
+            //printf("setState\n");
             _ppu->PPUSTATUS |= 0x80;
             drawNesFrame(_ppu->window, _ppu->screenBuffer);
             if (_ppu->PPUCTRL & 0x80) {
