@@ -18,4 +18,6 @@ CMakeCache.txt
 cmake_install.cmake
 Makefile
 Nesulator
-
+nesulator
+remake
+*.o

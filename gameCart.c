@@ -36,7 +36,9 @@ uint8_t basicReader(void *data, uint16_t addr) {
 }
 
 uint8_t mirroredVRomReader(void *data, uint16_t addr) {
-    return ((uint8_t *) data)[addr];
+    uint8_t val = ((uint8_t **) data)[addr >> 10][addr & 0x03FF];
+    //printf("read 0x%02X from 0x%04X\n", val, addr);
+    return val;
 }
 
 void nullWrite(void *data, uint16_t addr, uint8_t val) {
@@ -50,7 +52,7 @@ void createNRom(nesCart *cart, const uint8_t *romData, const nesFileHeader *hDat
         //printf("nrom %04X\n", BANK_SIZE * (i % (16 * hData->nRomBanks)));
     }
 
-    for (int j = 0; j < 4; j++) {
+    for (int j = 0; j < 8; j++) {
         cart->chrBanks[j] = &romData[ROM_PAGE_SIZE * hData->nRomBanks + BANK_SIZE * j];
     }
     cart->prgRom.data = &(cart->prgBanks);
@@ -64,6 +66,7 @@ void createNRom(nesCart *cart, const uint8_t *romData, const nesFileHeader *hDat
     cart->chrRom.length = 0x2000;
     cart->chrRom.readfun = mirroredVRomReader;
     cart->chrRom.writefun = nullWrite;
+    printf("chardata\n");
 }
 
 void createMMC3(nesCart *cart, const uint8_t *romData, const nesFileHeader *hData) {
@@ -123,6 +126,7 @@ int createNesCart(nesCart *cart, ppu2A03 *_ppu, const char *fileName) {
 
     switch (hData.mapperID) {
         case 0: // NROM
+            printf("nrom\n");
             createNRom(cart, gameData, &hData);
             break;
         case 4: // MMC3

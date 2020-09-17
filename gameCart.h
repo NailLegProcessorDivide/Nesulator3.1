@@ -13,7 +13,7 @@ struct nesCart {
 	device816 chrRom; // PPU ROM
 
 	const uint8_t* prgBanks[32]; // 32 * 1K banks of ROM that CPU can see
-	const uint8_t* chrBanks[4]; // 4 * 1K banks of ROM that PPU can see
+	const uint8_t* chrBanks[8]; // 8 * 1K banks of ROM that PPU can see
 
 	//void (*destruct)(nesCart* cart);
 };

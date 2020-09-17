@@ -109,6 +109,7 @@ void writePalate(void* ppu, uint16_t address, uint8_t value) {
 }
 
 uint8_t readPalate(void *ppu, uint16_t address) {
+    printf("palate from 0x%04X", address);
     ppu2A03* _ppu = ppu;
     uint8_t add = address%32;
     if(add&3)
@@ -358,7 +359,20 @@ void stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
                 }
             }
 
+
         }
+    }
+    else if(_ppu->frameCol < 128 && _ppu->frameRow < 240) {
+        int xp = _ppu->frameCol>>3;
+        int yp = _ppu->frameRow>>3;
+        int tile = yp*16+xp;
+        uint_fast16_t hackDBGprint = tile*16 + (_ppu->frameRow&7);
+        //printf("0x%04X 0x%04X\n", (_ppu->frameRow>>3) << 8, ((_ppu->frameCol>>3)<<4));
+
+        uint_fast8_t val = ((read_ppu2A03(_ppu, hackDBGprint)>>(7-(_ppu->frameCol&7)))&1) + 2*((read_ppu2A03(_ppu, hackDBGprint+8)>>(7-(_ppu->frameCol&7)))&1);
+
+        _ppu->screenBuffer[_ppu->frameRow * 256 + _ppu->frameCol] = val;
+        //printf("p: %i %i 0x%04X, %i\n", _ppu->frameRow, _ppu->frameCol, hackDBGprint, val);
     }
     if (_ppu->frameRow == 240) {
         if (_ppu->frameCol == 1) {

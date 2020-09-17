@@ -60,13 +60,13 @@ int main(int iargs, char **args) {
     createPPU(&myppu);
     createAPURP2A03(&myapu, &myppu, &mycpu);
 
-    add_ppu2A03_device(&myppu, &nc.prgRom);
-
     createPPUDevice(&ppuDev, &myppu);
     add_mos6502_device(&mycpu, &ppuDev);
 
     createDMADevice(&OAMDMA, &myapu);
     add_mos6502_device(&mycpu, &OAMDMA);
+
+    add_ppu2A03_device(&myppu, &nc.chrRom);
 
     printf("ready to launch\n");
     long long nesTime = 0;

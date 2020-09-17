@@ -28,12 +28,15 @@ typedef struct device816 device816;
     uint8_t val = 0;\
     for (size_t i = 0; i < base->deviceCount; i++) {\
         device816* dev = &base->devices[i];\
+        /*printf("dev: 0x%04x\n", dev->start);*/\
         if (dev->start <= address && dev->start + dev->length > address) {\
-            /*printf("reading ##type## mem at address %X\n", address);*/\
+            /*printf("reading "#type" mem at address %X\n", address);*/\
             val = dev->readfun(dev->data, address - dev->start);\
+            /*printf(">>\n");*/\
         }\
     }\
     /*fprintf(stdout, "READ %04X %02X\n", address, val);*/\
+    /*printf(#type"-dev: %p, addr: 0x%04X, val: 0x%02X\n", base, address, val);*/\
     return val;\
 }
 
