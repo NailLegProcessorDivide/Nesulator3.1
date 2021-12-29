@@ -46,17 +46,17 @@ void printPage(mos6502* _cpu, uint8_t page) {
             pageData[i * 16 + j] = read_mos6502(_cpu, (page << 8) + (i * 16 + j));
         }
     }
-    printf("PAGE %02x\n", page);
+    pprintf("PAGE %02x\n", page);
     for (int i = 0; i < 16; ++i) {
         for (int j = 0; j < 16; ++j) {
-            printf("%02X ", pageData[i * 16 + j]);
+            pprintf("%02X ", pageData[i * 16 + j]);
 		}
-		printf("\n");
+		pprintf("\n");
 	}
 }
 
 void printRegisters(mos6502* _cpu) {
-	fprintf(stdout, "CPU REGISTERS:\n-- A    =0x%02X\n-- X    =0x%02X\n-- Y    =0x%02x\n-- SP   =0x%02X\n-- PC   =0x%04X\n-- FLAGS=0x%02X\n"
+	fpprintf(stdout, "CPU REGISTERS:\n-- A    =0x%02X\n-- X    =0x%02X\n-- Y    =0x%02x\n-- SP   =0x%02X\n-- PC   =0x%04X\n-- FLAGS=0x%02X\n"
 		, _cpu->A, _cpu->X, _cpu->Y, _cpu->SP + 0x0100, _cpu->PC, _cpu->flags);
 }
 
@@ -114,8 +114,7 @@ static inline void doNZC(mos6502* _cpu, uint16_t val) {
 
 // non-maskable interrupt
 void triggerNMI(mos6502* _cpu) {
-    printf("nmi\n");
-	_cpu->PC += 2;
+    //pprintf("nmi\n");
 	push(_cpu, _cpu->PC >> 8); // push high byte on to stack first
 	push(_cpu, _cpu->PC & 0x00FF); // then push the low byte
 	setFlags(_cpu, FLAG_X); 
@@ -124,12 +123,11 @@ void triggerNMI(mos6502* _cpu) {
 	setFlags(_cpu, FLAG_I);
 	_cpu->PC = read_mos6502(_cpu, NMI_VEC); // put address of interrupt into PC (low byte first)
 	_cpu->PC |= read_mos6502(_cpu, NMI_VEC + 1) << 8;
-	printPage(_cpu, 1);
+	//printPage(_cpu, 1);
 }
 
 // reset
 void triggerRST(mos6502* _cpu) {
-	_cpu->PC += 2;
 	push(_cpu, _cpu->PC >> 8);
 	push(_cpu, _cpu->PC & 0x00FF);
 	push(_cpu, _cpu->flags);
@@ -140,8 +138,7 @@ void triggerRST(mos6502* _cpu) {
 }
 
 // interrupt request
-void triggerIRQ(mos6502* _cpu) { 
-	_cpu->PC += 2;
+void triggerIRQ(mos6502* _cpu) {
 	push(_cpu, _cpu->PC >> 8);
 	push(_cpu, _cpu->PC & 0xFF);
 	setFlags(_cpu, 32);
@@ -484,7 +481,7 @@ makeADC(indy, 5)
 // intermediary definition that allows for proper carrying when adding values to registers
 #define SUBmac(reg, addMode, clockcycles, carry) uint8_t vv = read_mos6502(_cpu, addMode(_cpu));\
     uint16_t val = _cpu->reg + (uint8_t)(~vv) + carry;\
-    /*printf("sub %hhi, %hhi, %hhi\n", _cpu->reg, vv, (int8_t)val);*/\
+    /*pprintf("sub %hhi, %hhi, %hhi\n", _cpu->reg, vv, (int8_t)val);*/\
     doNZC(_cpu, val);
 
 // SBC - subtract memory from accumulator with borrow
@@ -616,6 +613,7 @@ int TXS(mos6502* _cpu) {
 #define makeLD(reg, addMode, clockcycles) int LD##reg##_##addMode(mos6502 *_cpu) {\
     _cpu->reg = read_mos6502(_cpu, addMode(_cpu));\
     doNZ(_cpu, _cpu->reg);\
+	printf("reg -  -- -- -- --- -- --- -- --- --- -- %02X\n",_cpu->reg);\
     return clockcycles;\
 }
 #define makeLD2(reg, reg2, addMode, clockcycles) int L##reg##reg2##_##addMode(mos6502 *_cpu) {\
@@ -679,7 +677,7 @@ makeB_S(N, 2) // BMI - branch on result negative
     uint16_t address = addMode(_cpu);\
     uint8_t val = read_mos6502(_cpu, address) + 1;\
     doNZ(_cpu, val);\
-    /*printf("inc %04x %i\n", address, val);*/\
+    /*pprintf("inc %04x %i\n", address, val);*/\
     write_mos6502(_cpu, address, val);\
     return clockcycles;\
 }
@@ -761,7 +759,7 @@ int PHP(mos6502* _cpu) {
 
 // RTI - return from interrupt
 int RTI(mos6502* _cpu) {
-	printPage(_cpu, 1);
+	//printPage(_cpu, 1);
 	_cpu->flags = pop(_cpu) | FLAG_X;
 	_cpu->PC = pop(_cpu);
 	_cpu->PC += (pop(_cpu) << 8);
@@ -834,47 +832,47 @@ int counter = 0;
 //#define testNes
 // executes next instruction
 int stepCpu(mos6502* _cpu) {
-	//printf("running instruction from 0x%04X\n", _cpu->PC);
+	//pprintf("running instruction from 0x%04X\n", _cpu->PC);
 	uint8_t opcode = read_mos6502(_cpu, _cpu->PC++);
 #ifdef testNes
 	if (pc_expected[counter] != _cpu->PC - 1 || opcode_expected[counter] != opcode || a_expected[counter] != _cpu->A || x_expected[counter] != _cpu->X ||
 		y_expected[counter] != _cpu->Y || flag_expected[counter] != _cpu->flags || sp_expected[counter] != _cpu->SP) {
 
-		printf("\n%i\t-----------------------------------------------------------------------------------------------------------\n", counter);
-		printf("| EXPECTED ==>\t 0x%04X 0x%02X (%-9s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
+		pprintf("\n%i\t-----------------------------------------------------------------------------------------------------------\n", counter);
+		pprintf("| EXPECTED ==>\t 0x%04X 0x%02X (%-9s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
 			pc_expected[counter], opcode_expected[counter], instructions[opcode_expected[counter]],
 			a_expected[counter], x_expected[counter], y_expected[counter], BYTE_TO_FLAGS(flag_expected[counter]),
 			sp_expected[counter]);
 
-		printf("| ACTUAL   ==>\t 0x%04X 0x%02X (%-9s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
+		pprintf("| ACTUAL   ==>\t 0x%04X 0x%02X (%-9s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
 			_cpu->PC - 1, opcode, instructions[opcode], _cpu->A, _cpu->X, _cpu->Y, BYTE_TO_FLAGS(_cpu->flags),
 			_cpu->SP);
 
-		printf("| NOT SAME ==> \t");
+		pprintf("| NOT SAME ==> \t");
 		if (pc_expected[counter] != _cpu->PC - 1) {
-			printf(" !!PC!! ");
+			pprintf(" !!PC!! ");
 		}
 		if (opcode_expected[counter] != opcode) {
-			printf(" !!OPCODE!! ");
+			pprintf(" !!OPCODE!! ");
 		}
 		if (a_expected[counter] != _cpu->A) {
-			printf(" !!A!! ");
+			pprintf(" !!A!! ");
 		}
 		if (x_expected[counter] != _cpu->X) {
-			printf(" !!X!! ");
+			pprintf(" !!X!! ");
 		}
 		if (y_expected[counter] != _cpu->Y) {
-			printf(" !!Y!! ");
+			pprintf(" !!Y!! ");
 		}
 		if (flag_expected[counter] != _cpu->flags) {
-			printf(" !!FLAGS!! ");
+			pprintf(" !!FLAGS!! ");
 		}
 		if (sp_expected[counter] != _cpu->SP) {
-			printf(" !!SP!! ");
+			pprintf(" !!SP!! ");
 		}
 	}
 	else {
-		printf("| %i) CORRECT ==>\t 0x%04X 0x%02X (%-9s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
+		pprintf("| %i) CORRECT ==>\t 0x%04X 0x%02X (%-9s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
 			counter, pc_expected[counter], opcode_expected[counter], instructions[opcode_expected[counter]],
 			a_expected[counter], x_expected[counter], y_expected[counter], BYTE_TO_FLAGS(flag_expected[counter]),
 			sp_expected[counter]);
@@ -882,12 +880,14 @@ int stepCpu(mos6502* _cpu) {
 	//puts("\n-------------------------------------------------------------------------------------------------------------------\n");
 
 
-	//fprintf(stdout, "RUNNING 0x%04X 0x%02X\n",  _cpu->PC-1, opcode);
+	//fpprintf(stdout, "RUNNING 0x%04X 0x%02X\n",  _cpu->PC-1, opcode);
 	counter++;
 #endif
-    printf("| ACTUAL   ==>\t 0x%04X 0x%02X (%-9s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
+	//*
+	//if(_cpu->PC > 0x800E)
+    printf(/*"| ACTUAL   ==>\t "*/"0x%04X 0x%02X (%-9s), A: 0x%02X, X: 0x%02X, Y: 0x%02X, FLAGS: %c%c%c%c%c%c%c%c, SP: 0x%02X\n",
            _cpu->PC - 1, opcode, instructions[opcode], _cpu->A, _cpu->X, _cpu->Y, BYTE_TO_FLAGS(_cpu->flags),
-           _cpu->SP);
+           _cpu->SP);//*/
 	return cpuopmap[opcode](_cpu);
 
 }

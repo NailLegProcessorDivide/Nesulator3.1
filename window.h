@@ -6,13 +6,14 @@
 #define NESULATOR_WINDOW_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 struct nesWindow;
 typedef struct nesWindow nesWindow;
 
 int createNesWindow(nesWindow **);
 
-void drawNesFrame(nesWindow *, const uint8_t *frameData);
+bool drawNesFrame(nesWindow *, const uint8_t *frameData);
 
 void deleteNesWindow(nesWindow *);
 

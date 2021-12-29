@@ -22,25 +22,31 @@ uint8_t ppu2A03read(void *myppu, uint16_t address) {
     ppu2A03 *_ppu = (ppu2A03 *) myppu;
     address &= 0x0007; // get the last 3 bits of the address to determine the register (registers are mirrored)
     uint8_t rval = 0;
+    //printf("ppu read\n");
     switch (address) {
         case 2: // PPUSTATUS
-            _ppu->writeToggle = false;
+            //printf("status 0x%02X\n", _ppu->PPUSTATUS);
+            _ppu->writeToggle = true;
             uint8_t val = _ppu->PPUSTATUS;
             _ppu->PPUSTATUS &= 0x7F;
             rval =  val;
+            break;
         case 4: // OAMDATA
             rval =  _ppu->oamram[_ppu->OAMADDR];
+            break;
         case 7: // PPUDATA
             _ppu->vramAddr += (_ppu->PPUCTRL & 0b00000100) == 0 ? 1 : 32; // determine increment from 2nd bit of PPUCTRL
             rval = _ppu->vram[_ppu->vramAddr & 0x3FFF];
+            break;
     }
     //printf("read ppureg 0x%04X = 0x%02X\n", address, rval);
-    //fprintf(stdout, "WARNING: attempted to read from unmapped memory (address 0x%X)\n", address);
+    //fpprintf(stdout, "WARNING: attempted to read from unmapped memory (address 0x%X)\n", address);
     return rval;
 }
 
 void ppu2A03write(void *myppu, uint16_t address, uint8_t val) {
-    //printf("write ppureg 0x%04X = 0x%02X\n", address, val);
+    //pprintf("write ppureg 0x%04X = 0x%02X\n", address, val);
+    printf("ppu write\n");
     ppu2A03 *_ppu = (ppu2A03 *) myppu;
     address &= 0x0007;
     switch (address) {
@@ -49,6 +55,7 @@ void ppu2A03write(void *myppu, uint16_t address, uint8_t val) {
             _ppu->tvramAddr = (_ppu->tvramAddr&~(0b11<<10)) | (val&0b11)<<10;//http://wiki.nesdev.com/w/index.php/PPU_scrolling
             break;
         case 1: // PPUMASK
+            printf("ppu mask %02X\n", val);
             _ppu->PPUMASK = val;
             break;
         case 3: // OAMADDR
@@ -72,6 +79,7 @@ void ppu2A03write(void *myppu, uint16_t address, uint8_t val) {
             }
             break;
         case 6: //
+            pprintf("addr 0X%02X 0X%02X\n", val, _ppu->writeToggle);
             if(_ppu->writeToggle) {//1
                 _ppu->tvramAddr &= 0x00FF;
                 _ppu->tvramAddr |= (val&0x7F)<<8;
@@ -79,21 +87,24 @@ void ppu2A03write(void *myppu, uint16_t address, uint8_t val) {
             }
             else {//0
                 _ppu->finexScroll = val&0x07;
-                _ppu->tvramAddr &= 0xFF00;
+                _ppu->tvramAddr &= 0x7F00;
                 _ppu->tvramAddr |= val;
                 _ppu->vramAddr = _ppu->tvramAddr;
                 _ppu->writeToggle = true;
             }
             break;
         case 7: // PPUDATA
+            pprintf("data 0X%04X 0X%02X\n", _ppu->vramAddr, val);
             write_ppu2A03(_ppu, _ppu->vramAddr, val);
-            _ppu->vramAddr += (_ppu->PPUCTRL & 0b00000100) == 0 ? 1 : 32;
+            _ppu->vramAddr = (_ppu->vramAddr + ((_ppu->PPUCTRL & 0b00000100) == 0 ? 1 : 32)) & 0x7FFF;
             break;
     }
 }
 
 void writeRAMppu(void* mem, uint16_t address, uint8_t value){
-    ((uint8_t**)mem)[((address>>10)&2)][address & 0x3FF] = value;
+    //fpprintf(stderr, "w ram 0X%04X 0X%02X\n", address, value);
+    //fpprintf(stderr, "p %p %p %02X %04X\n", mem, ((uint8_t**)mem)[((address>>10)&3)], (address>>10)&3, address & 0x3FF);
+    ((uint8_t**)mem)[((address>>10)&3)][address & 0x3FF] = value;
 }
 uint8_t readRAMppu(void* mem, uint16_t address){
     return ((uint8_t*)mem)[address];
@@ -101,21 +112,26 @@ uint8_t readRAMppu(void* mem, uint16_t address){
 
 void writePalate(void* ppu, uint16_t address, uint8_t value) {
     ppu2A03* _ppu = ppu;
-    uint8_t add = address%32;
-    if(add&3)
+    uint8_t add = address&0x1F;
+    pprintf("write palate 0X%02X 0X%02X 0X%02X\n", address, value, add);
+    if(add&3) {
         _ppu->colourPalette[add] = value;
-    else
-        _ppu->colourPalette[add&0x0F] = value;
+    }
+    else {
+        _ppu->colourPalette[0] = value;
+    }
 }
 
 uint8_t readPalate(void *ppu, uint16_t address) {
-    printf("palate from 0x%04X", address);
+    //pprintf("palate from 0x%04X\n", address);
     ppu2A03* _ppu = ppu;
-    uint8_t add = address%32;
-    if(add&3)
+    uint8_t add = address&0x1F;
+    if(add&3) {
         return _ppu->colourPalette[add];
-    else
-        return _ppu->colourPalette[add&0x0F];
+    }
+    else {
+        return _ppu->colourPalette[0];
+    }
 }
 
 void makePalateDevice(ppu2A03* _ppu, device816* dev) {
@@ -128,7 +144,7 @@ void makePalateDevice(ppu2A03* _ppu, device816* dev) {
 
 void makeNameTableDevice(ppu2A03 *_ppu,device816 *dev) {
     dev->start = 0x2000;
-    dev->length = 0x1EFF;
+    dev->length = 0x1F00;
     dev->writefun = writeRAMppu;
     dev->readfun = readRAMppu;
     dev->data = (void*)_ppu->vramMap;
@@ -164,9 +180,10 @@ void createPPU(ppu2A03 *_ppu) {
 
     _ppu->devices = nullptr;
     _ppu->deviceCount = 0;
+    _ppu->writeToggle = true;
 
     if (createNesWindow(&_ppu->window)) {
-        printf("issue creating window\n");
+        pprintf("issue creating window\n");
     }
 
     device816 palletteDevice;
@@ -176,10 +193,10 @@ void createPPU(ppu2A03 *_ppu) {
     makeNameTableDevice(_ppu, &NTDevice);
 
     if(!add_ppu2A03_device(_ppu, &palletteDevice)) {
-        printf("not added pallete device");
+        pprintf("not added pallete device");
     }
     if(!add_ppu2A03_device(_ppu, &NTDevice)) {
-        printf("not added pallete device");
+        pprintf("not added pallete device");
     }
 }
 
@@ -198,26 +215,29 @@ void cxInc(ppu2A03 *_ppu) {
 }
 
 void yInc(ppu2A03 *_ppu) {
-    if (_ppu->vramAddr < 0x7000) {
+    _ppu->vramAddr ^= 0x0400;
+    if ((_ppu->vramAddr & 0x7000) != 0x7000) {
         _ppu->vramAddr += 0x1000;
     }
     else {
-        _ppu->vramAddr &= 0x8FFF;
-        if ((_ppu->vramAddr & 0x03E0) == 0x3A0) {//29 col needs to wrap past
-            _ppu->vramAddr &= ~0x03E0;
-            _ppu->vramAddr ^= 0x0800;
+        _ppu->vramAddr &= ~0x7000;
+        int y = (_ppu->vramAddr & 0x3E0) >> 5;
+        if (y == 29) {//29 col needs to wrap past
+            y = 0;
+            y ^= 0x0800;
         }
-        else if ((_ppu->vramAddr & 0x03E0) == 0x3E0) {
-            _ppu->vramAddr &= ~0x03E0;
+        else if (y == 31) {
+            y = 0;
         }
         else {
-            _ppu->vramAddr += 0x20;
+            ++y;
         }
-
+        _ppu->vramAddr = (_ppu->vramAddr & ~0x3E0) | (y<<5);
     }
 }
 
 uint16_t getTileAddr (ppu2A03 *_ppu){
+    pprintf("load %04X\n", _ppu->vramAddr & 0x0FFF);
     return 0x2000 | (_ppu->vramAddr & 0x0FFF);
 }
 
@@ -227,7 +247,7 @@ uint16_t getAttribAddr (ppu2A03 *_ppu){
 }
 
 uint16_t getPatturnAddr(ppu2A03 *_ppu, uint8_t tileNo){
-    return (tileNo<<4) + (_ppu->vramAddr>>12);
+    return (read_ppu2A03(_ppu, tileNo)<<4) + (_ppu->vramAddr>>12);
 }
 
 uint8_t renderEnable(ppu2A03 *_ppu) {
@@ -243,11 +263,14 @@ void setSPOverFlag(ppu2A03 *_ppu) {
     _ppu->PPUSTATUS |= 0x20;
 }
 
-void stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
+bool stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
+    //fprintf(stdout, "%cig rip, %i, %i, %i\n", (((int)(_ppu->vramMap[0]) == -1)?'b':'n'), _ppu->frameCol, _ppu->frameRow, _ppu->frameCounter);
+
     ++_ppu->ppuTick;
-    //printf("ppu tick: %u\n", _ppu->ppuTick);
-    if (_ppu->ppuTick <= 29658) return;//wait a few cycles before starting the ppu
-    //printf("ppuLive\n");
+    bool shouldClose = false;
+    //printf("ppu tick: %lu\n", _ppu->ppuTick);
+    if (_ppu->ppuTick <= 29658) return false;//wait a few cycles before starting the ppu
+    //pprintf("ppuLive\n");
     _ppu->frameRow += (++_ppu->frameCol) / LINE_WIDTH;
     _ppu->frameCounter += (_ppu->frameRow) / LINE_COUNT;
     _ppu->frameCol %= LINE_WIDTH;
@@ -256,15 +279,20 @@ void stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
         _ppu->PPUSTATUS &= 0xBF;
     }
     if (renderEnable(_ppu)) {
+        printf("ppu enable\n");
         if (_ppu->frameRow < 240) {
             if (_ppu->frameCol == 64) {
-                memset(_ppu->oamram2, 0xff, 64);
+                memset(_ppu->oamram2, 0xff, 32);
             } else if (_ppu->frameCol == 256) {
                 uint_fast8_t spfound = 0;
                 uint_fast8_t moffset = 0;
+                _ppu->sp0 = false;
                 for (uint_fast8_t i = 0; i < 64; ++i) {
                     if(spfound < 8 ) {
                         if ((uint32_t)(_ppu->oamram[i<<2] - _ppu->frameRow) < 8) {
+                            if(i == 0) {
+                                _ppu->sp0 = true;
+                            }
                             _ppu->oamram2[spfound << 2] = _ppu->oamram[i << 2];
                             _ppu->oamram2[(spfound << 2) + 1] = _ppu->oamram[(i << 2) + 1];
                             _ppu->oamram2[(spfound << 2) + 2] = _ppu->oamram[(i << 2) + 2];
@@ -311,6 +339,9 @@ void stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
                         } else {
                             if (spcol == 0) {
                                 spcol = ((_ppu->spLatches[i].patern0 & 1) << 1) + (_ppu->spLatches[i].patern1 & 1);
+                                if (spcol != 0 && i == 0 && _ppu->sp0) {
+                                    _ppu->PPUSTATUS |= 0x40;
+                                }
                                 spInf = _ppu->spLatches[i].attrib;
                             }
                             _ppu->spLatches[i].patern0 <<= 1;
@@ -321,45 +352,66 @@ void stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
                 if (renderBGEnable(_ppu)) {
                     _ppu->AB0 <<= 1;
                     _ppu->AB1 <<= 1;
+                    _ppu->attribval <<= 2;
 
                     uint8_t patval = ((_ppu->vramAddr >> 4) & 4) | ((_ppu->vramAddr) & 2);//2 * colour index
 
-                    _ppu->attrib0 = (_ppu->attrib0 << 1) + ((_ppu->attribval >> patval) & 1);
-                    _ppu->attrib1 = (_ppu->attrib1 << 1) + ((_ppu->attribval >> (patval + 1)) & 1);
+                    //_ppu->attrib0 = (_ppu->attrib0 << 1) + ((_ppu->attribval >> patval) & 1);
+                    //_ppu->attrib1 = (_ppu->attrib1 << 1) + ((_ppu->attribval >> (patval + 1)) & 1);
 
-                    colPal = ((_ppu->attrib0 >> _ppu->finexScroll) & 1) |
-                             (((_ppu->attrib1 >> (_ppu->finexScroll)) << 1) & 2);
-                    colVal = ((_ppu->AB0 >> (8 + _ppu->finexScroll)) & 1) |
-                             ((_ppu->AB1 >> (7 + _ppu->finexScroll)) & 2);
+
+                    colPal = (_ppu->attribval>>(16 + _ppu->finexScroll * 2))&3;
+                    colVal = colPal;//((_ppu->AB0 >> (8 + _ppu->finexScroll)) & 1) | ((_ppu->AB1 >> (7 + _ppu->finexScroll)) & 2);
 
 
 
                 }
                 uint8_t fCol = 0;
                 if ((spInf & 0x20) != 0) { //bg->sp
-                    fCol = spcol + ((spInf&3) << 2) + 0x10;
+                    fCol = colPal + colVal*4 + ((spInf&3) << 2);
                 }
-                fCol = spcol + ((spInf&3) << 2) + 0x10;
+                fCol = spcol + ((spInf&3) << 2) + 0x10;//sprite
                 if ((spInf & 0x20) == 0){ //sp->bg
-                    fCol = spcol + ((spInf&3) << 2) + 0x10;
+                    fCol = colPal + colVal*4 + ((spInf&3) << 2);
                 }
-                _ppu->screenBuffer[_ppu->frameRow * 256 + _ppu->frameCol] = read_ppu2A03(_ppu, 0x3F00 + fCol);
+                pprintf("doodle %02X %02X %02X %02X %04X\n", fCol, read_ppu2A03(_ppu, 0x3F00 + fCol), _ppu->frameRow , _ppu->frameCol, _ppu->frameRow * 256 + _ppu->frameCol);
+                //_ppu->screenBuffer[_ppu->frameRow * 256 + _ppu->frameCol] = read_ppu2A03(_ppu, 0x3F00 + fCol);
+                _ppu->screenBuffer[_ppu->frameRow * 256 + _ppu->frameCol] = fCol;
             }
             if (renderBGEnable(_ppu)) {
-                if (_ppu->frameCol == 256) {
+                if (_ppu->frameCol == 240) {
                     yInc(_ppu);
+                    pprintf("why\n");
+                    _ppu->dummyCount = 0;
                 }
                 if ((_ppu->frameCol & 7) == 1 && _ppu->frameCol > 1 && _ppu->frameCol < 258) {//load all at once cause easier
-
-                    uint8_t nt = read_ppu2A03(_ppu, getTileAddr(_ppu));
-                    _ppu->attribval = read_ppu2A03(_ppu, getAttribAddr(_ppu));
+                    uint16_t taddr = getTileAddr(_ppu);
+                    uint8_t nt = read_ppu2A03(_ppu, taddr);
+                    pprintf("dbg now %04X %02X %i\n", getAttribAddr(_ppu), read_ppu2A03(_ppu, (getAttribAddr(_ppu))), ((taddr&2) + ((taddr&64)>>2)));
+                    uint8_t attrib = (read_ppu2A03(_ppu, (getAttribAddr(_ppu)))>>((taddr&2) + ((taddr&64)>>2)))&3;
+                    _ppu->attribval |= attrib*0x5555;//spread every other bit for 16 bits
                     uint16_t pAddr = getPatturnAddr(_ppu, nt);
                     _ppu->AB0 |= read_ppu2A03(_ppu, pAddr);
                     _ppu->AB1 |= read_ppu2A03(_ppu, pAddr + 8);
+
+                    pprintf("dummyCount %i %02X %04X %04X %04X %04X\n", ++_ppu->dummyCount, nt, pAddr, _ppu->AB0, _ppu->AB1, _ppu->attribval);
+                    cxInc(_ppu);
                 }
             }
 
 
+        }
+        if(_ppu->frameCol == 128 && _ppu->frameRow == 240) {
+            pprintf("oam @ render PPUMASK: 0x%02X %x %x\n", _ppu->PPUMASK, renderBGEnable(_ppu), renderSPEnable(_ppu));
+            for(int y = 0; y < 16; ++y) {
+                for (int x = 0; x < 16; ++x) {
+                    pprintf("%02X ", _ppu->oamram[y*16+x]);
+                }
+                pprintf("\n");
+            }
+            for (int i = 0; i < 1024; ++i) {
+                
+            }
         }
     }
     else if(_ppu->frameCol < 128 && _ppu->frameRow < 240) {
@@ -367,18 +419,19 @@ void stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
         int yp = _ppu->frameRow>>3;
         int tile = yp*16+xp;
         uint_fast16_t hackDBGprint = tile*16 + (_ppu->frameRow&7);
-        //printf("0x%04X 0x%04X\n", (_ppu->frameRow>>3) << 8, ((_ppu->frameCol>>3)<<4));
+        //pprintf("0x%04X 0x%04X\n", (_ppu->frameRow>>3) << 8, ((_ppu->frameCol>>3)<<4));
 
         uint_fast8_t val = ((read_ppu2A03(_ppu, hackDBGprint)>>(7-(_ppu->frameCol&7)))&1) + 2*((read_ppu2A03(_ppu, hackDBGprint+8)>>(7-(_ppu->frameCol&7)))&1);
 
         _ppu->screenBuffer[_ppu->frameRow * 256 + _ppu->frameCol] = val;
-        //printf("p: %i %i 0x%04X, %i\n", _ppu->frameRow, _ppu->frameCol, hackDBGprint, val);
+        //pprintf("p: %i %i 0x%04X, %i\n", _ppu->frameRow, _ppu->frameCol, hackDBGprint, val);
     }
     if (_ppu->frameRow == 240) {
         if (_ppu->frameCol == 1) {
-            //printf("setState\n");
+            printf("setState\n");
             _ppu->PPUSTATUS |= 0x80;
-            drawNesFrame(_ppu->window, _ppu->screenBuffer);
+            shouldClose = drawNesFrame(_ppu->window, _ppu->screenBuffer);
+            //pprintf("render\n");
             if (_ppu->PPUCTRL & 0x80) {
                 triggerNMI(_cpu);
             }
@@ -389,5 +442,6 @@ void stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
             _ppu->PPUSTATUS &= 0x7F;
         }
     }
+    return shouldClose;
 }
 

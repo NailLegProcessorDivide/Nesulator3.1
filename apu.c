@@ -28,7 +28,15 @@ void writeDma(void* apu, uint16_t addr, uint8_t val) {
     for(int i = 0; i < 256; ++i){
         _apu->ppu->oamram[i] = read_mos6502(_apu->cpu, (val<<8)+i);
     }
+
     printf("oamdma, 0x%02X\n", val);
+    uint8_t pageData[256];
+	for (int i = 0; i < 16; ++i) {
+        for (int j = 0; j < 16; ++j) {
+            printf("%02X ", read_mos6502(_apu->cpu, (val << 8) + (i * 16 + j)));
+        }
+        printf("\n");
+    }
 }
 
 void createAPUDevice(device816 *dev, apuRP2A03 *_apu){}
@@ -36,7 +44,7 @@ void createAPUDevice(device816 *dev, apuRP2A03 *_apu){}
 void createDMADevice(device816 *dev, apuRP2A03 *_apu){
     dev->data = _apu;
     dev->length = 1;
-    dev->start = 0x4018;
+    dev->start = 0x4014;
     dev->readfun = noRead;
     dev->writefun = writeDma;
 }

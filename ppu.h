@@ -48,7 +48,7 @@ struct ppu2A03 {
     uint16_t AB0;
     uint16_t AB1;
 
-    uint8_t attribval;
+    uint32_t attribval;
 
     uint8_t attrib0;
     uint8_t attrib1;
@@ -58,6 +58,10 @@ struct ppu2A03 {
     uint_fast8_t finexScroll;
     bool writeToggle;
 
+    bool sp0;
+
+    int dummyCount;
+
     spriteData spLatches[8];
 };
 
@@ -65,7 +69,7 @@ typedef struct ppu2A03 ppu2A03;
 
 void createPPU(ppu2A03 *);
 
-void stepPPU(ppu2A03 *, mos6502 *);
+bool stepPPU(ppu2A03 *, mos6502 *);
 
 void createPPUDevice(device816 *, const ppu2A03 *);
 

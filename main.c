@@ -80,13 +80,15 @@ int main(int iargs, char **args) {
     triggerRST(&mycpu);
     //mycpu.PC = 0xc000;
     //for (int i = 0; i < 45000; ++i) {
-    for (int i = 0; i < 1000000; ++i) {
+    for (int i = 0; ; ++i) {
         int instLen = stepCpu(&mycpu);
         for (int j = 0; j < instLen * 3; ++j) {
-            stepPPU(&myppu, &mycpu);
+            if(stepPPU(&myppu, &mycpu)) goto yesIHateMySelf;
         }
         nesTime += instLen;
     }
+
+yesIHateMySelf:
 
     end = clock();
     cpu_time_clocks = ((long long) (end - start));

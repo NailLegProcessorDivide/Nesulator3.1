@@ -12,6 +12,11 @@
 
 #include <stdint.h>
 
+//#define pprintf(...) printf(__VA_ARGS__)
+//#define fpprintf(...) fprintf(__VA_ARGS__)
+#define pprintf(...)
+#define fpprintf(...)
+
 struct device816 {
     uint8_t (*readfun)(void *, uint16_t); // data, address
     void (*writefun)(void *, uint16_t, uint8_t); // data, address, value
@@ -36,16 +41,28 @@ typedef struct device816 device816;
         }\
     }\
     /*fprintf(stdout, "READ %04X %02X\n", address, val);*/\
-    /*printf(#type"-dev: %p, addr: 0x%04X, val: 0x%02X\n", base, address, val);*/\
+    printf(#type"-dev: %p, addr: 0x%04X, val: 0x%02X\n", base, address, val);\
     return val;\
 }
 
+/*
+#define debugWrite(a, b) a
+/*/
+#define debugWrite(a, b) b
+//*/
+
 #define makeDeviceWriter(type) void write_##type(type* base, uint16_t address, uint8_t value) {\
-    /*fprintf(stdout, "WRITE %04X %02X\n", address, value)*/;\
+    debugWrite(printf("WRITE %04X %02X\n", address, value),);\
     for (size_t i = 0; i < base->deviceCount; i++) {\
         device816 *dev = &base->devices[i];\
+        debugWrite(printf("WRITE %04X %04X\n", dev->start, dev->length),);\
         if (dev->start <= address && dev->start + dev->length > address) {\
+            debugWrite(fprintf(stderr, "%p %p ", dev->writefun, dev->data),);\
+            debugWrite(fprintf(stderr, "WRITE %04X %04X %04X %02X\n", dev->start, dev->length, address - dev->start, value),);\
+            debugWrite(printf("WRITE %04X %04X\n", dev->start, dev->length),);\
             dev->writefun(dev->data, address - dev->start, value);\
+            debugWrite(printf("lWRITE %04X %04X\n", dev->start, dev->length),);\
+            debugWrite(fprintf(stderr, "lWRITE %04X %04X %04X %02X\n", dev->start, dev->length, address - dev->start, value),);\
         }\
     }\
 }
