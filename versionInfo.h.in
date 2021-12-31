@@ -1,0 +1,4 @@
+#define VERSION_MAJOR @Nesulator_VERSION_MAJOR@
+#define VERSION_MINOR @Nesulator_VERSION_MINOR@
+#define VERSION_PATCH @Nesulator_VERSION_PATCH@
+

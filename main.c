@@ -3,6 +3,7 @@
 #include "apu.h"
 #include "memory.h"
 #include "gameCart.h"
+#include "versionInfo.h"
 #include <stdio.h>
 
 #include <time.h>
@@ -10,13 +11,16 @@
 #ifdef _WIN32
 #define TEST_FILE "X:/nestest.nes"
 #else
-#define TEST_FILE "/home/joseph/Downloads/nestest.nes"
+#define TEST_FILE "~/roms/nestest.nes"
 #endif
 
 int main(int iargs, char **args) {
     const char *nesFilePath = TEST_FILE;
     const size_t maxLineLen = 1023;
     char nameBuffer[1024];
+
+    printf("Nesulator version %i.%i.%i\n", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+
     if (iargs > 1) {
         nesFilePath = args[1];
     } else if (scanf("%1023[^\n]", nameBuffer) > 0) {
