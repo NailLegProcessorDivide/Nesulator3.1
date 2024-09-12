@@ -3,7 +3,6 @@
 #include "apu.h"
 #include "memory.h"
 #include "gameCart.h"
-#include "versionInfo.h"
 #include <stdio.h>
 
 #include <time.h>
@@ -19,7 +18,7 @@ int main(int iargs, char **args) {
     const size_t maxLineLen = 1023;
     char nameBuffer[1024];
 
-    printf("Nesulator version %i.%i.%i\n", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+    // printf("Nesulator version %i.%i.%i\n", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
     if (iargs > 1) {
         nesFilePath = args[1];
