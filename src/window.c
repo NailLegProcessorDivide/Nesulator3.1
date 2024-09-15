@@ -27,7 +27,7 @@ struct nesWindow {
 
 int createNesWindow(nesWindow **window) {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        fprintf(stderr, "ERROR: could not init SDL: %s\n", SDL_GetError());
+        fprintf(stderr, "ERROR: could not initialise SDL: %s\n", SDL_GetError());
         return -1;
     }
     nesWindow *nesWind = malloc(sizeof(nesWindow));
