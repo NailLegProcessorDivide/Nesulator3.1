@@ -37,7 +37,7 @@ int main(int iargs, char **args) {
     device816 ppuDev;
     nesCart nc;
 
-    printf("using file: %s\n", nesFilePath);
+    printf("Using file: %s\n", nesFilePath);
 
     if (createNesCart(&nc, &myppu, nesFilePath)) {
         return -1;

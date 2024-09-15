@@ -48,7 +48,7 @@ struct ppu2A03 {
     uint16_t AB0;
     uint16_t AB1;
 
-    uint32_t attribval;
+    uint32_t attribVal;
 
     uint8_t attrib0;
     uint8_t attrib1;

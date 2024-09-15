@@ -75,7 +75,7 @@ void createMMC3(nesCart *cart, const uint8_t *romData, const nesFileHeader *hDat
 
 int createNesCart(nesCart *cart, ppu2A03 *_ppu, const char *fileName) {
     FILE *file = fopen(fileName, "rb"); // read file in binary mode
-    if (file == NULL) {
+    if (file == nullptr) {
         fputs("ERROR: file not found\n", stderr);
         return -1;
     }
@@ -147,6 +147,3 @@ void destroyNesCart(nesCart *cart) {
     free(cart->prgRom.data);
     fputs("DELETED CARTRIDGE", stdout);
 }
-
-
-

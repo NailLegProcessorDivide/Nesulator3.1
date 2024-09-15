@@ -90,13 +90,13 @@ static inline bool testFlag(mos6502* _cpu, uint8_t flag) {
 	return _cpu->flags & flag;
 }
 
-// modify the N and Z flags 
+// modify the N and Z flags
 static inline void doNZ(mos6502* _cpu, uint8_t val) {
 	setFlag(_cpu, FLAG_N, val & FLAG_N);
 	setFlag(_cpu, FLAG_Z, !val);
 }
 
-// modify N, Z and C flags 
+// modify N, Z and C flags
 static inline void doNZC(mos6502* _cpu, uint16_t val) {
 	setFlag(_cpu, FLAG_N, val & FLAG_N);
 	setFlag(_cpu, FLAG_Z, !(val & 0x00FF));
@@ -117,7 +117,7 @@ void triggerNMI(mos6502* _cpu) {
     //pprintf("nmi\n");
 	push(_cpu, _cpu->PC >> 8); // push high byte on to stack first
 	push(_cpu, _cpu->PC & 0x00FF); // then push the low byte
-	setFlags(_cpu, FLAG_X); 
+	setFlags(_cpu, FLAG_X);
 	setFlag(_cpu, FLAG_B, false);
 	push(_cpu, _cpu->flags); // push status register on to stack
 	setFlags(_cpu, FLAG_I);
@@ -269,8 +269,8 @@ makeSE(I) // SEI - set interrupt disable status
 makeSE(D) // SED - set decimal flag
 
 // ORA - OR memory with accumulator
-#define makeORA(addMode, clockcycles) int ORA_##addMode (mos6502 *_cpu) {\
-    uint8_t val = _cpu->A | read_mos6502(_cpu, addMode(_cpu));\
+#define makeORA(addrMode, clockcycles) int ORA_##addrMode (mos6502 *_cpu) {\
+    uint8_t val = _cpu->A | read_mos6502(_cpu, addrMode(_cpu));\
     _cpu->A = val;\
     doNZ(_cpu, val);\
     return clockcycles;\
@@ -285,8 +285,8 @@ makeORA(xind, 6)
 makeORA(indy, 5)
 
 // ASL - arithmetic shift memory left by one bit
-#define makeASL(addMode, clockcycles) int ASL_##addMode (mos6502 *_cpu) {\
-    uint16_t address = addMode(_cpu);\
+#define makeASL(addrMode, clockcycles) int ASL_##addrMode (mos6502 *_cpu) {\
+    uint16_t address = addrMode(_cpu);\
     uint16_t val = read_mos6502(_cpu, address) << 1;\
     write_mos6502(_cpu, address, (uint8_t) val);\
     doNZC(_cpu, val);\
@@ -305,16 +305,16 @@ int ASLA(mos6502* _cpu) { // for accumulator
 }
 
 // SLO - shift memory left by one bit, then OR memory with accumulator **UNOFFICIAL
-#define makeSLO(addMode, clockcycles) int SLO_##addMode (mos6502 *_cpu) {\
+#define makeSLO(addrMode, clockcycles) int SLO_##addrMode (mos6502 *_cpu) {\
 	/* do ASL instruction */\
 	{\
-    uint16_t address = addMode(_cpu);\
+    uint16_t address = addrMode(_cpu);\
     uint16_t val = read_mos6502(_cpu, address) << 1;\
     write_mos6502(_cpu, address, (uint8_t) val);\
     doNZC(_cpu, val);\
 	}\
 	/* do ORA instruction */\
-    uint8_t val = _cpu->A | read_mos6502(_cpu, addMode(_cpu));\
+    uint8_t val = _cpu->A | read_mos6502(_cpu, addrMode(_cpu));\
     _cpu->A = val;\
     doNZ(_cpu, val);\
 	return clockcycles;\
@@ -328,16 +328,16 @@ makeSLO(xind, 8)
 makeSLO(indy, 8)
 
 // SRE - shift memory right by one bit, then XOR memory with accumulator **UNOFFICIAL
-#define makeSRE(addMode, clockcycles) int SRE_##addMode (mos6502 *_cpu) {\
+#define makeSRE(addrMode, clockcycles) int SRE_##addrMode (mos6502 *_cpu) {\
 	/* do LSR instruction */\
-	uint16_t address = addMode(_cpu);\
+	uint16_t address = addrMode(_cpu);\
 	uint8_t rval = read_mos6502(_cpu, address);\
     uint8_t wval = rval >> 1;\
     write_mos6502(_cpu, address, wval);\
 	setFlag(_cpu, FLAG_C, rval & 1);\
     doNZC(_cpu, wval);\
 	/* do EOR instruction */\
-	_cpu->A ^= read_mos6502(_cpu, addMode(_cpu));\
+	_cpu->A ^= read_mos6502(_cpu, addrMode(_cpu));\
     doNZ(_cpu, _cpu->A);\
 	return clockcycles;\
 }
@@ -350,8 +350,8 @@ makeSRE(xind, 8)
 makeSRE(indy, 8)
 
 // JSR - jump to new location and save return address
-#define makeJSR(addMode, clockcycles) int JSR(mos6502 *_cpu) {\
-    uint16_t val = addMode(_cpu);\
+#define makeJSR(addrMode, clockcycles) int JSR(mos6502 *_cpu) {\
+    uint16_t val = addrMode(_cpu);\
     _cpu->PC -= 1;\
     push(_cpu, _cpu->PC >> 8);\
     push(_cpu, _cpu->PC & 0x00FF);\
@@ -362,8 +362,8 @@ makeJSR(abss, 6)
 
 // BIT - test bits in memory with accumulator (bits 7 and 6 of operand are transferred to N,V flags of status register)
 //		 zero flag is set to the result of operand AND accumulator
-#define makeBIT(addMode, clockcycles) int BIT_##addMode (mos6502 *_cpu) {\
-    uint8_t mem = read_mos6502(_cpu, addMode(_cpu));\
+#define makeBIT(addrMode, clockcycles) int BIT_##addrMode (mos6502 *_cpu) {\
+    uint8_t mem = read_mos6502(_cpu, addrMode(_cpu));\
     uint8_t res = _cpu->A & mem;\
     setFlag(_cpu, FLAG_Z, !res);\
     _cpu->flags = (_cpu->flags & 0x3F) | (mem & 0xC0); /* take the 2 MSB from memory value and store as the 2 MSB of flags*/\
@@ -372,9 +372,9 @@ makeJSR(abss, 6)
 makeBIT(zpg, 3)
 makeBIT(abss, 4)
 
-// AND - AND memory with accumulator  
-#define makeAND(addMode, clockcycles) int AND_##addMode (mos6502 *_cpu) {\
-    uint8_t val = _cpu->A & read_mos6502(_cpu, addMode(_cpu));\
+// AND - AND memory with accumulator
+#define makeAND(addrMode, clockcycles) int AND_##addrMode (mos6502 *_cpu) {\
+    uint8_t val = _cpu->A & read_mos6502(_cpu, addrMode(_cpu));\
     _cpu->A = val;\
     doNZ(_cpu, val);\
     return clockcycles;\
@@ -389,8 +389,8 @@ makeAND(xind, 6);
 makeAND(indy, 5);
 
 // ROL - rotate one bit left
-#define makeROL(addMode, clockcycles) int ROL_##addMode (mos6502 *_cpu) {\
-    uint16_t address = addMode(_cpu);\
+#define makeROL(addrMode, clockcycles) int ROL_##addrMode (mos6502 *_cpu) {\
+    uint16_t address = addrMode(_cpu);\
     uint8_t val = read_mos6502(_cpu, address);\
     val = (val << 1) | (val >> 7);\
     write_mos6502(_cpu, address, val);\
@@ -413,16 +413,16 @@ int ROLA(mos6502* _cpu) { // for accumulator
 }
 
 // JMP - jump to new location
-#define makeJMP(addMode, clockcycles) int JMP_##addMode (mos6502 *_cpu) {\
-    _cpu->PC = addMode(_cpu);\
+#define makeJMP(addrMode, clockcycles) int JMP_##addrMode (mos6502 *_cpu) {\
+    _cpu->PC = addrMode(_cpu);\
     return clockcycles;\
 }
 makeJMP(abss, 3)
 makeJMP(ind, 5)
 
 // LSR - logical shift one bit right
-#define makeLSR(addMode, clockcycles) int LSR_##addMode (mos6502 *_cpu) {\
-    uint16_t address = addMode(_cpu);\
+#define makeLSR(addrMode, clockcycles) int LSR_##addrMode (mos6502 *_cpu) {\
+    uint16_t address = addrMode(_cpu);\
     uint8_t rval = read_mos6502(_cpu, address);\
     uint8_t wval = rval >> 1;\
     write_mos6502(_cpu, address, wval);\
@@ -444,9 +444,9 @@ int LSRA(mos6502* _cpu) { // for accumulator
 	return 2;
 }
 
-// EOR - XOR memory with accumulator 
-#define makeEOR(addMode, clockcycles) int EOR_##addMode (mos6502 *_cpu) {\
-    _cpu->A ^= read_mos6502(_cpu, addMode(_cpu));\
+// EOR - XOR memory with accumulator
+#define makeEOR(addrMode, clockcycles) int EOR_##addrMode (mos6502 *_cpu) {\
+    _cpu->A ^= read_mos6502(_cpu, addrMode(_cpu));\
     doNZ(_cpu, _cpu->A);\
     return clockcycles;\
 }
@@ -460,8 +460,8 @@ makeEOR(xind, 6)
 makeEOR(indy, 5)
 
 // ADC - add memory to accumulator with carry
-#define makeADC(addMode, clockcycles) int ADC_##addMode (mos6502 *_cpu) {\
-    uint8_t val = read_mos6502(_cpu, addMode(_cpu));\
+#define makeADC(addrMode, clockcycles) int ADC_##addrMode (mos6502 *_cpu) {\
+    uint8_t val = read_mos6502(_cpu, addrMode(_cpu));\
     uint8_t mayover = ~(val ^ _cpu->A);\
     uint16_t total = val + _cpu->A + (testFlag(_cpu, FLAG_C) ? 1 : 0);\
     _cpu->A = (uint8_t) total;\
@@ -479,14 +479,14 @@ makeADC(xind, 6)
 makeADC(indy, 5)
 
 // intermediary definition that allows for proper carrying when adding values to registers
-#define SUBmac(reg, addMode, clockcycles, carry) uint8_t vv = read_mos6502(_cpu, addMode(_cpu));\
+#define SUBmac(reg, addrMode, clockcycles, carry) uint8_t vv = read_mos6502(_cpu, addrMode(_cpu));\
     uint16_t val = _cpu->reg + (uint8_t)(~vv) + carry;\
     /*pprintf("sub %hhi, %hhi, %hhi\n", _cpu->reg, vv, (int8_t)val);*/\
     doNZC(_cpu, val);
 
 // SBC - subtract memory from accumulator with borrow
-#define makeSBC(addMode, clockcycles) int SBC_##addMode(mos6502 *_cpu) {\
-    SUBmac(A, addMode, clockcycles, (testFlag(_cpu, FLAG_C) ? 1 : 0));\
+#define makeSBC(addrMode, clockcycles) int SBC_##addrMode(mos6502 *_cpu) {\
+    SUBmac(A, addrMode, clockcycles, (testFlag(_cpu, FLAG_C) ? 1 : 0));\
     setFlag(_cpu, FLAG_V, (((vv&0x80))? (int8_t)val < (int8_t)_cpu->A : (int8_t)val > (int8_t)_cpu->A));\
     _cpu->A = (uint8_t) val;\
     return clockcycles;\
@@ -501,13 +501,13 @@ makeSBC(xind, 6)
 makeSBC(indy, 5)
 
 //CMP - compare memory with accumulator
-#define makeCMP(addMode, clockcycles) int CMP_##addMode (mos6502 *_cpu) {\
-    SUBmac(A, addMode, clockcycles, 1);\
+#define makeCMP(addrMode, clockcycles) int CMP_##addrMode (mos6502 *_cpu) {\
+    SUBmac(A, addrMode, clockcycles, 1);\
     return clockcycles;\
 }
 
-#define makeCP_(reg, addMode, clockcycles) int CP##reg##_##addMode (mos6502 *_cpu) {\
-    SUBmac(reg, addMode, clockcycles, 1)\
+#define makeCP_(reg, addrMode, clockcycles) int CP##reg##_##addrMode (mos6502 *_cpu) {\
+    SUBmac(reg, addrMode, clockcycles, 1)\
     return clockcycles;\
 }
 makeCMP(imm, 2)
@@ -533,8 +533,8 @@ makeCP_(Y, abss, 4)
     setFlag(_cpu, FLAG_C, val & 1);\
 
 // ROR - rotate one bit right
-#define makeROR(addMode, clockcycles) int ROR_##addMode (mos6502 *_cpu) {\
-    uint16_t address = addMode(_cpu);\
+#define makeROR(addrMode, clockcycles) int ROR_##addrMode (mos6502 *_cpu) {\
+    uint16_t address = addrMode(_cpu);\
     uint8_t val = read_mos6502(_cpu, address);\
     doROR()\
     write_mos6502(_cpu, address, newV);\
@@ -552,18 +552,18 @@ int RORA(mos6502* _cpu) { // for accumulator
 	return 2;
 }
 
-#define makeST(reg, addMode, clockcycles) int ST##reg##_##addMode (mos6502 *_cpu) {\
-    write_mos6502(_cpu, addMode(_cpu), _cpu->reg);\
+#define makeST(reg, addrMode, clockcycles) int ST##reg##_##addrMode (mos6502 *_cpu) {\
+    write_mos6502(_cpu, addrMode(_cpu), _cpu->reg);\
     return clockcycles;\
 }
 
-#define makeST2(reg, reg2, addMode, clockcycles) int S##reg##reg2##_##addMode (mos6502 *_cpu) {\
-    write_mos6502(_cpu, addMode(_cpu), _cpu->reg & _cpu->reg2);\
+#define makeST2(reg, reg2, addrMode, clockcycles) int S##reg##reg2##_##addrMode (mos6502 *_cpu) {\
+    write_mos6502(_cpu, addrMode(_cpu), _cpu->reg & _cpu->reg2);\
     return clockcycles;\
 }
 
-#define makeST3(reg, addMode) int S##reg##A_##addMode (mos6502 *_cpu) {\
-    uint16_t address = addMode(_cpu);\
+#define makeST3(reg, addrMode) int S##reg##A_##addrMode (mos6502 *_cpu) {\
+    uint16_t address = addrMode(_cpu);\
 	write_mos6502(_cpu, address, _cpu->reg & (address >> 8) + 1);\
 	return 5;\
 }
@@ -610,14 +610,14 @@ int TXS(mos6502* _cpu) {
 	return 2;
 }
 
-#define makeLD(reg, addMode, clockcycles) int LD##reg##_##addMode(mos6502 *_cpu) {\
-    _cpu->reg = read_mos6502(_cpu, addMode(_cpu));\
+#define makeLD(reg, addrMode, clockcycles) int LD##reg##_##addrMode(mos6502 *_cpu) {\
+    _cpu->reg = read_mos6502(_cpu, addrMode(_cpu));\
     doNZ(_cpu, _cpu->reg);\
 	printf("reg -  -- -- -- --- -- --- -- --- --- -- %02X\n",_cpu->reg);\
     return clockcycles;\
 }
-#define makeLD2(reg, reg2, addMode, clockcycles) int L##reg##reg2##_##addMode(mos6502 *_cpu) {\
-    _cpu->reg = read_mos6502(_cpu, addMode(_cpu));\
+#define makeLD2(reg, reg2, addrMode, clockcycles) int L##reg##reg2##_##addrMode(mos6502 *_cpu) {\
+    _cpu->reg = read_mos6502(_cpu, addrMode(_cpu));\
     _cpu->reg2 = _cpu->reg;\
     doNZ(_cpu, _cpu->reg);\
     return clockcycles;\
@@ -672,9 +672,9 @@ makeB_C(N, 2) // BPL - branch on result positive
 makeB_S(N, 2) // BMI - branch on result negative
 
 // INC - increment memory by one
-#define makeINC(addMode, clockcycles) int INC_##addMode(mos6502 *_cpu) {\
+#define makeINC(addrMode, clockcycles) int INC_##addrMode(mos6502 *_cpu) {\
     /*printPage(_cpu, 0);*/\
-    uint16_t address = addMode(_cpu);\
+    uint16_t address = addrMode(_cpu);\
     uint8_t val = read_mos6502(_cpu, address) + 1;\
     doNZ(_cpu, val);\
     /*pprintf("inc %04x %i\n", address, val);*/\
@@ -695,8 +695,8 @@ makeIN_(X) // INX - increment index X by one
 makeIN_(Y) // INY - increment index Y by one
 
 // DEC - decrement memory by one
-#define makeDEC(addMode, clockcycles) int DEC_##addMode (mos6502 *_cpu) {\
-    uint16_t address = addMode(_cpu);\
+#define makeDEC(addrMode, clockcycles) int DEC_##addrMode (mos6502 *_cpu) {\
+    uint16_t address = addrMode(_cpu);\
     uint8_t val = read_mos6502(_cpu, address) - 1;\
     write_mos6502(_cpu, address, val);\
     doNZ(_cpu, val);\
@@ -716,8 +716,8 @@ makeDE_(X) // DEX - decrement index X by one
 makeDE_(Y) // DEY - decrement index Y by one
 
 // DCP - subtract 1 from memory (without borrow)
-#define makeDCP(addMode, clockcycles) int DCP_##addMode(mos6502 *_cpu) {\
-	uint16_t address = addMode(_cpu);\
+#define makeDCP(addrMode, clockcycles) int DCP_##addrMode(mos6502 *_cpu) {\
+	uint16_t address = addrMode(_cpu);\
 	uint8_t val = read_mos6502(_cpu, address) - 1;\
 	write_mos6502(_cpu, address, val);\
 	doNZC(_cpu, _cpu->A);\
@@ -778,8 +778,8 @@ int ERR(mos6502* _cpu) {
 	return 10000000;
 }
 
-#define makeNOP(addMode, clockcycles)int NOP_##addMode(mos6502 *_cpu) {\
-    addMode(_cpu);\
+#define makeNOP(addrMode, clockcycles)int NOP_##addrMode(mos6502 *_cpu) {\
+    addrMode(_cpu);\
     return clockcycles;\
 }
 

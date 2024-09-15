@@ -110,10 +110,10 @@ uint8_t readRAMppu(void* mem, uint16_t address){
     return ((uint8_t*)mem)[address];
 }
 
-void writePalate(void* ppu, uint16_t address, uint8_t value) {
+void writePalette(void* ppu, uint16_t address, uint8_t value) {
     ppu2A03* _ppu = ppu;
     uint8_t add = address&0x1F;
-    pprintf("write palate 0X%02X 0X%02X 0X%02X\n", address, value, add);
+    pprintf("write palette 0X%02X 0X%02X 0X%02X\n", address, value, add);
     if(add&3) {
         _ppu->colourPalette[add] = value;
     }
@@ -122,8 +122,8 @@ void writePalate(void* ppu, uint16_t address, uint8_t value) {
     }
 }
 
-uint8_t readPalate(void *ppu, uint16_t address) {
-    //pprintf("palate from 0x%04X\n", address);
+uint8_t readPalette(void *ppu, uint16_t address) {
+    //pprintf("palette from 0x%04X\n", address);
     ppu2A03* _ppu = ppu;
     uint8_t add = address&0x1F;
     if(add&3) {
@@ -134,11 +134,11 @@ uint8_t readPalate(void *ppu, uint16_t address) {
     }
 }
 
-void makePalateDevice(ppu2A03* _ppu, device816* dev) {
+void makePaletteDevice(ppu2A03* _ppu, device816* dev) {
     dev->start = 0x3F00;
     dev->length = 0x0100;
-    dev->writefun = writePalate;
-    dev->readfun = readPalate;
+    dev->writefun = writePalette;
+    dev->readfun = readPalette;
     dev->data = (void*)_ppu;
 }
 
@@ -187,7 +187,7 @@ void createPPU(ppu2A03 *_ppu) {
     }
 
     device816 palletteDevice;
-    makePalateDevice(_ppu, &palletteDevice);
+    makePaletteDevice(_ppu, &palletteDevice);
 
     device816 NTDevice;
     makeNameTableDevice(_ppu, &NTDevice);
@@ -246,7 +246,7 @@ uint16_t getAttribAddr (ppu2A03 *_ppu){
         ((_ppu->vramAddr >> 4) & 0x38) | ((_ppu->vramAddr >> 2) & 0x07);
 }
 
-uint16_t getPatturnAddr(ppu2A03 *_ppu, uint8_t tileNo){
+uint16_t getPatternAddr(ppu2A03 *_ppu, uint8_t tileNo){
     return (read_ppu2A03(_ppu, tileNo)<<4) + (_ppu->vramAddr>>12);
 }
 
@@ -352,15 +352,15 @@ bool stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
                 if (renderBGEnable(_ppu)) {
                     _ppu->AB0 <<= 1;
                     _ppu->AB1 <<= 1;
-                    _ppu->attribval <<= 2;
+                    _ppu->attribVal <<= 2;
 
                     uint8_t patval = ((_ppu->vramAddr >> 4) & 4) | ((_ppu->vramAddr) & 2);//2 * colour index
 
-                    //_ppu->attrib0 = (_ppu->attrib0 << 1) + ((_ppu->attribval >> patval) & 1);
-                    //_ppu->attrib1 = (_ppu->attrib1 << 1) + ((_ppu->attribval >> (patval + 1)) & 1);
+                    //_ppu->attrib0 = (_ppu->attrib0 << 1) + ((_ppu->attribVal >> patval) & 1);
+                    //_ppu->attrib1 = (_ppu->attrib1 << 1) + ((_ppu->attribVal >> (patval + 1)) & 1);
 
 
-                    colPal = (_ppu->attribval>>(16 + _ppu->finexScroll * 2))&3;
+                    colPal = (_ppu->attribVal>>(16 + _ppu->finexScroll * 2))&3;
                     colVal = colPal;//((_ppu->AB0 >> (8 + _ppu->finexScroll)) & 1) | ((_ppu->AB1 >> (7 + _ppu->finexScroll)) & 2);
 
 
@@ -389,12 +389,12 @@ bool stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
                     uint8_t nt = read_ppu2A03(_ppu, taddr);
                     pprintf("dbg now %04X %02X %i\n", getAttribAddr(_ppu), read_ppu2A03(_ppu, (getAttribAddr(_ppu))), ((taddr&2) + ((taddr&64)>>2)));
                     uint8_t attrib = (read_ppu2A03(_ppu, (getAttribAddr(_ppu)))>>((taddr&2) + ((taddr&64)>>2)))&3;
-                    _ppu->attribval |= attrib*0x5555;//spread every other bit for 16 bits
-                    uint16_t pAddr = getPatturnAddr(_ppu, nt);
+                    _ppu->attribVal |= attrib*0x5555;//spread every other bit for 16 bits
+                    uint16_t pAddr = getPatternAddr(_ppu, nt);
                     _ppu->AB0 |= read_ppu2A03(_ppu, pAddr);
                     _ppu->AB1 |= read_ppu2A03(_ppu, pAddr + 8);
 
-                    pprintf("dummyCount %i %02X %04X %04X %04X %04X\n", ++_ppu->dummyCount, nt, pAddr, _ppu->AB0, _ppu->AB1, _ppu->attribval);
+                    pprintf("dummyCount %i %02X %04X %04X %04X %04X\n", ++_ppu->dummyCount, nt, pAddr, _ppu->AB0, _ppu->AB1, _ppu->attribVal);
                     cxInc(_ppu);
                 }
             }
@@ -410,7 +410,7 @@ bool stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
                 pprintf("\n");
             }
             for (int i = 0; i < 1024; ++i) {
-                
+
             }
         }
     }
@@ -444,4 +444,3 @@ bool stepPPU(ppu2A03 *_ppu, mos6502 *_cpu) {
     }
     return shouldClose;
 }
-

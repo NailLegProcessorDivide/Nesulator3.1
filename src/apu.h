@@ -18,7 +18,7 @@ struct apuPulse {
 };
 
 struct apuTriangle {
-    uint8_t LinearCounter;
+    uint8_t linearCounter;
     uint8_t unused;
     uint8_t timer;
     uint8_t counterLoad;
@@ -48,7 +48,7 @@ struct apuRP2A03 {
     apuPulse pulse2;
     apuTriangle triangle;
     apuNoise noise;
-    apuDMC DMC;
+    apuDMC dmc;
 
     uint8_t status;
     uint8_t frameCounter;
